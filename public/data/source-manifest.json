@@ -85,13 +85,13 @@
     "colorNormalization": "Subtract minimum RGB channel, divide by chroma (max-min); compare to identically normalized source palette."
   },
   "navigationCues": {
-    "crossingHysteresis": "No audible crossing notifications; surface continuously modifies the synth filter.",
+    "crossingHysteresis": "A uniform 3x3 cell neighborhood on the new side is required for an entering-land or entering-water cue.",
     "path": "Pointer follows displayed segment; keyboard takes shortest path across antimeridian. Coordinate jumps/resets set baseline without crossing sounds.",
     "boundaryZoneCssPixels": 12,
     "boundaryReleaseCssPixels": 18,
     "boundaryMeaning": "Interactive map rectangle, not physical screen edges. Corners have priority.",
-    "patterns": "Soft harmonic mallet boundary/corner patterns only. Shoreline crossings and missing samples do not trigger automatic notes.",
-    "surfaceGuide": "Optional fixed 140 Hz reference only when there is no interpretable visual sample; not a data measurement.",
-    "synth": "Native Web Audio PeriodicWave harmonic pad through a low-pass filter; 180 ms surface smoothing, adjustable contrast (default 65%)."
+    "patterns": "Land: 45 ms low knock; water: 85 ms high droplet; at most two recent crossings spaced 100 ms. Map-boundary patterns are separate.",
+    "surfaceGuide": "Removed; no background reference tone or geography-dependent filter.",
+    "synth": "Neutral harmonic data voice. Independent short crossing earcons use different harmonic profiles and pitch slides."
   }
 }

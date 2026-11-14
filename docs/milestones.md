@@ -67,3 +67,9 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Replaced square letterboxing with independent width/height scaling across the full available map stage. Full image extent is retained; no crop or zoom.
 - Updated coordinate regression coverage to verify pointer sampling on wide and portrait stretched rectangles.
 - 60 automated checks and production build passed. Browser visual verification remains unavailable in this environment.
+
+## Short crossing earcons — revised user direction
+- Removed all continuous surface-dependent filtering, contrast control and background surface guide. Data tone voicing is geography-neutral.
+- Reconnected spatially hysteretic shoreline detection to distinct single-impact earcons: 45 ms low woody knock entering land and 85 ms bright droplet entering water. No country-border cues.
+- At most two recent crossings, no long backlog; zero missing-data drone; reset/time/preferences never simulate crossings. Added dedicated legend auditions and crossing toggle.
+- 60 automated checks and production build passed, including duration/signature, neutral-voice, missing-sample silence, country borders, rapid island transit, jitter and cancellation regressions. Manual listening remains unverified.

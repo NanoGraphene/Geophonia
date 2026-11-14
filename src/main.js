@@ -8,13 +8,13 @@ import { loadSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
-import { loadGeography } from './geography.js';
+import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
 const audioSupported = !!(globalThis.AudioContext || globalThis.webkitAudioContext);
-let source = null, geography = null, spatialTimer, active = false, legendPlaying = false, legendTimer, starting = false, pointerInside = false;
+let source = null, geography = null, surfaceTracker = null, spatialTimer, active = false, legendPlaying = false, legendTimer, starting = false, pointerInside = false;
 const boundaryTracker = new BoundaryTracker();
 const selectionGate = createSelectionGate();
 let pendingDataset = 'svs-3912', expanded = false;
@@ -72,7 +72,7 @@ function render(state) {
   else if (!state.audio.enabled) $('audio-status').textContent = 'Audio is off. Start when you’re ready.';
   else if (legendPlaying) $('audio-status').textContent = 'Playing an audio legend example.';
   else if (!active) $('audio-status').textContent = 'Audio paused outside the map. Move or focus the map to continue.';
-  else $('audio-status').textContent = sample?.value != null ? 'Audio on · exploring the selected location' : state.audio.surfaceGuide && state.surface !== 'unknown' ? `No data tone · quiet ${state.surface} guide at 140 Hz` : 'Audio on · no visual sample; continuous tone is silent';
+  else $('audio-status').textContent = sample?.value != null ? 'Audio on · exploring the selected location' : 'Audio on · no visual sample; data tone is silent';
   audio.update(sample, state.audio, active && !legendPlaying, state.surface);
 }
 store.subscribe(render);
@@ -87,20 +87,25 @@ function stopLegend() {
 function select(location, immediate = false, mode = 'relocate') {
   if (legendPlaying) stopLegend();
   active = true;
+  const previous=store.get().location;
+  const continuous=mode==='keyboard'||(mode==='pointer'&&pointerInside);
+  const crossings=surfaceTracker&&continuous?surfaceTracker.move(previous,location,{wrap:mode==='keyboard'}):[];
+  if(!continuous)surfaceTracker?.reset(location);
   pointerInside = mode === 'pointer';
   if (mode === 'relocate') boundaryTracker.reset();
   const boundary = boundaryTracker.update(toView(geoToMercator(location.lon, location.lat), viewport), $('map').getBoundingClientRect());
   const preferences = store.get().audio;
   const parts = [];
   if (boundary && preferences.boundaryCues) parts.push(`${boundary.replace('-', ' ')} map boundary`);
+  if(crossings.length&&preferences.coastCues)parts.push(`Entering ${crossings.at(-1).to}`);
   const cue = parts.join('. ');
   const state = resample(location, cue ? { lastCue: cue } : {});
-  audio.navigationCue({ boundary }, preferences);
+  audio.navigationCue({ boundary, crossings }, preferences);
   announce(`${formatLocation(location)}. ${surfaceDescription(state)}. ${sampleDescription(state)}${cue ? ' ' + cue + '.' : ''}`, immediate);
 }
 function silence(message = 'All application audio is silent.') {
   active = false; starting = false; pointerInside = false; stopLegend(); audio.stop();
-  boundaryTracker.reset();
+  boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
   store.update({ audio: { ...store.get().audio, enabled: false } });
   $('audio-status').textContent = message; announce(message, true);
 }
@@ -114,7 +119,7 @@ $('map').addEventListener('keydown', event => {
   }
 });
 $('map').addEventListener('focus', () => {
-  stopLegend(); active = true; pointerInside = false; boundaryTracker.reset(); render(store.get());
+  stopLegend(); active = true; pointerInside = false; boundaryTracker.reset(); surfaceTracker?.reset(store.get().location); render(store.get());
 });
 $('map').addEventListener('pointermove', event => {
   if (event.pointerType === 'touch' && event.buttons === 0) return;
@@ -141,7 +146,7 @@ function leaveMap(event) {
     }
   }
   active = false; pointerInside = false; stopLegend(); audio.cancelTones('missing'); render(store.get());
-  boundaryTracker.reset();
+  boundaryTracker.reset();surfaceTracker?.reset(store.get().location);
 }
 $('map').addEventListener('pointerleave', leaveMap);
 $('map').addEventListener('pointercancel', leaveMap);
@@ -163,17 +168,12 @@ $('volume').addEventListener('input', event => {
   $('volume-value').textContent = `${Math.round(volume * 100)}%`;
   store.update({ audio: { ...store.get().audio, volume } });
 });
-for (const [id, preference] of [['surface-guide', 'surfaceGuide'], ['boundary-cues', 'boundaryCues']]) {
+for (const [id, preference] of [['coast-cues', 'coastCues'], ['boundary-cues', 'boundaryCues']]) {
   $(id).addEventListener('change', event => {
-    stopLegend(); audio.cancelTones('navigation');
+    stopLegend(); audio.cancelTones('navigation'); audio.cancelTones('coast');
     store.update({ audio: { ...store.get().audio, [preference]: event.target.checked } });
   });
 }
-$('surface-contrast').addEventListener('input', event => {
-  stopLegend(); const surfaceContrast = Number(event.target.value) / 100;
-  $('contrast-value').textContent = `${Math.round(surfaceContrast * 100)}%`;
-  store.update({ audio: { ...store.get().audio, surfaceContrast } });
-});
 $('apply-pitch').addEventListener('click', () => {
   const min = Number($('min-hz').value), max = Number($('max-hz').value);
   if (!$('min-hz').value || !$('max-hz').value || !validatePitchRange(min, max)) {
@@ -190,7 +190,7 @@ async function startAudio() {
     const started = await audio.start();
     starting = false;
     if (!started) { render(store.get()); return false; }
-    active = true; pointerInside = false; boundaryTracker.reset();
+    active = true; pointerInside = false; boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
     store.update({ audio: { ...store.get().audio, enabled: true } });
     return true;
   } catch (error) {
@@ -223,9 +223,10 @@ for (const button of document.querySelectorAll('[data-legend]')) button.addEvent
 async function initializeGeography() {
   if ($('retry-geography').disabled) return;
   $('retry-geography').disabled = true; $('retry-geography').hidden = true;
-  geography = null; resample(store.get().location, { geographyStatus: 'loading' });
+  geography = null; surfaceTracker=null; resample(store.get().location, { geographyStatus: 'loading' });
   try {
     geography = await loadGeography();
+    surfaceTracker=new SurfaceTransitionTracker(geography.mask,store.get().location);
     resample(store.get().location, { geographyStatus: 'ready' });
     announce(`Surface geometry ready. ${surfaceDescription(store.get())}.`, true);
   } catch (error) {

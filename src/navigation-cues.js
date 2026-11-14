@@ -43,9 +43,4 @@ export function boundaryPattern(zone) {
   const [vertical, horizontal] = zone.split('-');
   return [...EDGES[vertical].map(n => ({ ...n })), ...EDGES[horizontal].map(n => ({ ...n, delay: n.delay + .42 }))];
 }
-export function coastPattern(surface) {
-  if (!['land', 'water'].includes(surface)) return [];
-  const frequencies = surface === 'land' ? [740, 988] : [988, 740];
-  return frequencies.map((hz, i) => ({ hz, delay: i * .085, duration: .065 }));
-}
 export function patternDuration(pattern) { return pattern.reduce((max, n) => Math.max(max, n.delay + n.duration), 0); }

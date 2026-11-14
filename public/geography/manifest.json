@@ -37,5 +37,5 @@
     "nominalEquatorialCellKm": 9.783935546875,
     "rasterization": "Integer vertex rasterization, polygon union with holes preserved; subtract union of lake polygons. Classification refers to the selected cell."
   },
-  "limits": "Generalized 1:50m geometry and ~9.8 km equatorial raster cells. Small islands, narrow channels, exact shorelines and seasonal/historical water changes may be omitted. This is not a 2007 shoreline reconstruction. Near-coast means a 3x3 cell neighborhood contains both surfaces. The surface filter follows the selected cell with audio smoothing; no shoreline notification is triggered."
+  "limits": "Generalized 1:50m geometry and ~9.8 km equatorial raster cells. Small islands, narrow channels, exact shorelines and seasonal/historical water changes may be omitted. This is not a 2007 shoreline reconstruction. Near-coast means a 3x3 cell neighborhood contains both surfaces. Crossing notifications require a uniform 3x3 neighborhood on the new side; narrow features may not trigger a cue. Continuous data voicing is surface-neutral."
 }

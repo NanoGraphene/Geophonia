@@ -62,31 +62,25 @@ test('outside map fades continuous sound and a browser interruption stops audio'
  assert.equal(engine.enabled,false);assert.equal(engine.master.gain.value,0);assert.equal(interrupted,true);
 });
 
-test('land and water continuously morph the same harmonic voice filter without retriggering',async()=>{
+test('geographic surface never changes the continuous data voice',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
- engine.update(valid,prefs,true,'water');const waterCutoff=engine.dataVoice.filter.frequency.value;
- const initialVoices=context.oscillators.length;
- engine.update(valid,prefs,true,'land');assert.ok(engine.dataVoice.filter.frequency.value>waterCutoff);
- assert.equal(context.oscillators.length,initialVoices);assert.equal(engine.pendingTones.size,0);
- assert.ok(engine.dataVoice.oscillator.wave.imag[2]>0);
- assert.ok(engine.dataVoice.filter.frequency.events.some(e=>e[0]==='smooth'&&e[3]===.18));
- assert.equal(engine.level.gain.value,.03);engine.stop();
+ engine.update(valid,prefs,true,'water');const cutoff=engine.dataVoice.filter.frequency.value,voices=context.oscillators.length;
+ engine.update(valid,prefs,true,'land');assert.equal(engine.dataVoice.filter.frequency.value,cutoff);
+ assert.equal(context.oscillators.length,voices);assert.equal(engine.pendingTones.size,0);engine.stop();
 });
-test('no visual sample retains null data pitch while optional surface guide remains separate',async()=>{
- const engine=new AudioEngine(()=>new Context());await engine.start();
- engine.update(missing,{...prefs,surfaceGuide:true},true,'land');
- assert.equal(engine.level.gain.value,0);assert.equal(engine.guideLevel.gain.value,.05*prefs.volume);
- assert.equal(engine.guideVoice.oscillator.frequency.value,140);
- engine.update(missing,{...prefs,surfaceGuide:false},true,'land');assert.equal(engine.guideLevel.gain.value,0);
- engine.update(missing,prefs,true,'unknown');assert.equal(engine.guideLevel.gain.value,0);
- engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.guideLevel.gain.value,0);
+test('missing data has no background guide on either surface',async()=>{
+ const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
+ engine.update(missing,prefs,true,'land');assert.equal(engine.level.gain.value,0);
+ engine.update(missing,prefs,true,'water');assert.equal(engine.level.gain.value,0);
+ assert.equal(context.oscillators.length,1);assert.equal(engine.pendingTones.size,0);engine.stop();
 });
-test('boundary cues replace stale cues and shoreline crossings stay silent',async()=>{
+test('boundary and crossing cues replace stale sounds with bounded latest crossings',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
  engine.navigationCue({boundary:'left'},prefs);const old=[...engine.pendingTones];
  engine.navigationCue({boundary:'top-right',crossings:[{to:'land'},{to:'water'},{to:'land'},{to:'water'}]},prefs);
  assert.ok(old.every(e=>e.oscillator.stopped));
- assert.equal([...engine.pendingTones].filter(t=>t.group==='navigation').length,5); // Corner only; even legacy crossing events cannot produce notes.
+ assert.equal([...engine.pendingTones].filter(t=>t.group==='navigation').length,5);
+ assert.equal([...engine.pendingTones].filter(t=>t.group==='coast').length,2);
  engine.stop();assert.equal(engine.pendingTones.size,0);assert.equal(engine.master.gain.value,0);
 });
 test('muted and disabled cue preferences schedule no navigation sound',async()=>{
@@ -108,16 +102,17 @@ test('volume changes cancel already scheduled cue notes, including setting zero 
  const engine=new AudioEngine(()=>new Context());await engine.start();engine.update(valid,prefs,true,'water');
  engine.navigationCue({boundary:'top-right',crossings:[{to:'land'}]},prefs);assert.ok(engine.pendingTones.size>0);
  engine.update(valid,{...prefs,volume:0},false,'water');assert.equal(engine.pendingTones.size,0);
- assert.equal(engine.level.gain.value,0);assert.equal(engine.guideLevel.gain.value,0);engine.stop();
+ assert.equal(engine.level.gain.value,0);engine.stop();
 });
 
-test('surface contrast zero gives the same filter for both surfaces, pitch remains data-driven',async()=>{
+test('land and water crossing signatures are distinct and shorter than 100 ms',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
- engine.update(valid,{...prefs,surfaceContrast:0},true,'water');const cutoff=engine.dataVoice.filter.frequency.value;
- const pitch=engine.oscillator.frequency.value;
- engine.update(valid,{...prefs,surfaceContrast:0},true,'land');assert.equal(engine.dataVoice.filter.frequency.value,cutoff);
- assert.equal(engine.oscillator.frequency.value,pitch);
- engine.navigationCue({crossings:[{to:'water'},{to:'land'}]},prefs);assert.equal(engine.pendingTones.size,0);engine.stop();
+ engine.navigationCue({crossings:[{to:'land'},{to:'water'}]},prefs);
+ const notes=[...engine.pendingTones];assert.equal(notes.length,2);
+ assert.notDeepEqual([...notes[0].oscillator.wave.imag],[...notes[1].oscillator.wave.imag]);
+ const ends=notes.map(n=>n.gain.gain.events.filter(e=>e[0]==='ramp').at(-1)[2]);
+ assert.ok(Math.abs(ends[0]-1-.045)<1e-9);assert.ok(Math.abs(ends[1]-1-.1-.085)<1e-9);
+ assert.ok(notes[0].oscillator.frequency.value<notes[1].oscillator.frequency.value);engine.stop();
 });
 test('boundary mallets use a harmonic wave and softened envelopes',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();engine.navigationCue({boundary:'left'},prefs);
@@ -126,9 +121,9 @@ test('boundary mallets use a harmonic wave and softened envelopes',async()=>{
  assert.ok(note.gain.gain.events.some(e=>e[0]==='ramp'&&e[2]>=1.04));engine.stop();
 });
 
-test('surface morph demonstration holds one oscillator and changes only its filter',async()=>{
- const engine=new AudioEngine(()=>new Context());await engine.start();engine.legend('surface-morph',prefs);
- assert.equal(engine.pendingTones.size,1);const entry=[...engine.pendingTones][0];
- const changes=entry.voice.filter.frequency.events.filter(e=>e[0]==='smooth');
- assert.equal(changes.length,2);assert.ok(changes[0][1]>changes[1][1]);engine.stop();
+test('crossing legend auditions a single short impact and silence cancels it',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();
+ engine.legend('coast-land',prefs);assert.equal(engine.pendingTones.size,1);
+ engine.legend('coast-water',prefs);assert.equal(engine.pendingTones.size,1);
+ engine.stop();assert.equal(engine.pendingTones.size,0);assert.equal(engine.master.gain.value,0);
 });

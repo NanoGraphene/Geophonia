@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { boundaryZone, BoundaryTracker, clipExitPoint, boundaryPattern, BOUNDARY_NAMES, coastPattern } from '../src/navigation-cues.js';
+import { boundaryZone, BoundaryTracker, clipExitPoint, boundaryPattern, BOUNDARY_NAMES } from '../src/navigation-cues.js';
 const size={width:1000,height:1000};
 const points={left:{x:.005,y:.5},right:{x:.995,y:.5},top:{x:.5,y:.005},bottom:{x:.5,y:.995},'top-left':{x:.005,y:.005},'top-right':{x:.995,y:.005},'bottom-left':{x:.005,y:.995},'bottom-right':{x:.995,y:.995}};
 test('all four edges and four corners are recognized; corners have priority',()=>{
@@ -46,6 +46,4 @@ test('all boundary patterns are distinct in mono and corners concatenate vertica
  const corner=boundaryPattern('top-right');assert.deepEqual(corner.slice(0,2),boundaryPattern('top'));
  assert.ok(corner.slice(2).every(n=>n.delay>=.42));
  assert.deepEqual(boundaryPattern('unknown'),[]);
- assert.ok(coastPattern('land')[0].hz<coastPattern('land')[1].hz);
- assert.ok(coastPattern('water')[0].hz>coastPattern('water')[1].hz);
 });
