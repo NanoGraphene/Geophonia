@@ -147,7 +147,7 @@ export function createGridDataset(table, { lat, lon, value, time = '', unit = ''
       geo: { projection: 'equirectangular', extent: [Math.max(-180, longitudes[0] - dx / 2), Math.max(-90, latitudes[0] - dy / 2), Math.min(180, longitudes.at(-1) + dx / 2), Math.min(90, latitudes.at(-1) + dy / 2)], gridCenters: { lon: longitudes, lat: [...latitudes].reverse() } },
       feature: { method: 'grid', name: value, unit: units, kind: 'quantitative', estimate: false },
       valueScale: { min, max, unit: units, symbol: units, decimals: 2 },
-      mapping: { amplitude: 'coverage', curve: 'linear' },
+      mapping: { amplitude: 'value', curve: 'linear' },
       actualRange: { min: actualMin, max: actualMax },
       frames: ordered.map(period => ({ timestamp: period.timestamp, timeLabel: period.label || 'Undated grid' }))
     }, grids

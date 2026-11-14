@@ -67,7 +67,7 @@ test('imported grid rendering and sampling refer to identical geographic cells, 
   const pixels=gridPixels(data.manifest,data.grids[0],4);
   assert.equal(pixels[3],255);assert.equal(pixels[(0*4+3)*4+3],0);
   const zero=sampleFeatures({manifest:data.manifest,gridData:data.grids[0]},{lat:-45,lon:-90},0);assert.equal(zero.measurement,0);assert.equal(zero.validity,'valid');
-  assert.equal(data.manifest.valueScale.max,60);
+  assert.equal(data.manifest.valueScale.max,60);assert.equal(data.manifest.mapping.amplitude,'value');
   assert.match(valueText({sample:zero},data.manifest),/0 meters/);assert.doesNotMatch(valueText({sample:zero},data.manifest),/Celsius|image color/);
 });
 test('catalog assets preserve integrity and date precision instead of inventing instants',async()=>{

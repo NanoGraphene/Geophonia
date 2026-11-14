@@ -37,7 +37,7 @@ A sample returns `{value,measurement,density,intensity,validity,matchedPixels,to
 
 ## Automatic mapping and overrides
 
-Static profiles recommend a meaningful source range, linear/log/square-root response, and amplitude channel. Imported CSVs automatically detect the minimum/maximum of all finite values across **every frame**. Constant datasets receive a padded audio range. Ranges never refit during cursor or time movement.
+Static profiles recommend a meaningful source range, linear/log/square-root response, and amplitude channel. Imported CSVs automatically detect the minimum/maximum of all finite values across **every frame**. Numeric grids drive both pitch and amplitude from the mapped value by default; valid-cell coverage remains an optional amplitude channel. Constant datasets receive a padded audio range. Ranges never refit during cursor or time movement.
 
 Pitch is an exponential interpolation between the user's low/high Hz endpoints, driven by the normalized selected value. Amplitude follows feature/valid-cell coverage, mapped value, or image brightness. Main volume caps gain; transitions remain smoothed by the audio engine. “Amplitude modulation” here means continuously changing output gain from data, not an additional audible tremolo oscillator.
 
