@@ -18,13 +18,13 @@ npm run preview
 
 Vite is the only direct development dependency. Source is browser JavaScript ES modules. Assets and sampling run locally; no backend or app credentials. `npm run dev` prints the local URL. Managed Sites preview uses the platform's preview CLI instead.
 
-Source: NASA SVS 3912, ECCO2 ocean visualization; frame 23000 at 2007-03-25 12:00 UTC. Each dataset currently has one frozen frame; manual time travel remains pending. See `public/data/source-manifest.json`, `docs/alignment.json`, `docs/milestones.md`, and `docs/mappings.md`.
+Source: NASA SVS 3912, ECCO2 ocean visualization; frame 23000 at 2007-03-25 12:00 UTC. Each dataset has three frozen dated frames. Focus the timeline for Left/Right and Home/End, or use Previous/Next; geographic selection stays fixed. See `public/data/source-manifest.json`, `docs/alignment.json`, `docs/milestones.md`, and `docs/mappings.md`.
 
 Focus map with Tab; arrows move by selected degree step, Home resets. Pointer and coordinate form share the same location. The map is a localized ARIA application region; Tab leaves normally. Directional buttons offer an alternative. Web Mercator latitude range is ±85.0511°. East/west navigation wraps across the antimeridian.
 
 Start Audio begins sonification; Pause or Silence all audio stops it. Escape silences immediately. Volume defaults to 25%, pitch 160–800 Hz. Missing visual samples have zero data tone and no background guide. Shoreline crossings have short knock/droplet notifications. The audio legend demonstrates pitch, trace coverage, missing-sample reference, and both shoreline crossing notifications. Background tabs require explicit audio restart.
 
-Feature definitions, thresholds, projection and lifecycle: `docs/mappings.md`. Verification limits and demo: `docs/accessibility-checks.md`. Milestones 2–4 are implemented; milestones 5–8 are not implemented.
+Feature definitions, thresholds, projection and lifecycle: `docs/mappings.md`. Verification limits and demo: `docs/accessibility-checks.md`. Milestones 2–4 are implemented; milestone 5 is implemented; narration and later accessibility review are in progress.
 
 Assets are committed so ordinary setup needs no Python. To reproduce their derivation, use Python 3 with Pillow/NumPy and run `python scripts/prepare-assets.py --cache /absolute/cache`. Source hashes are checked before transformation. Derived colors use nearest-neighbor resampling and source sampling uses the original-resolution PNG.
 
@@ -45,3 +45,5 @@ Fullscreen correction: the dialog is explicitly fixed to the viewport, and the m
 Temperature image provenance: `public/data/temperature-provenance.json` records the official full-resolution frame URL, 2048×1024 dimensions, hashes and decoded-pixel equality with a fresh NASA download. The source embeds its own logo and date; those pixels are masked from sampling. NASA separately lists 1024×512 print previews, 320×180 search previews and 80×40 thumbnails. The app now exposes the original frame link and clearly identifies this as a rendered visualization rather than a raw model grid.
 
 Right-click the map to start audio at the clicked geographic location (standard or expanded view). It resumes exploration from a paused legend and keeps already playing audio on; it does not toggle audio off. The browser context menu is suppressed only inside the map. Start Audio remains keyboard-accessible, and Escape/Silence still stop immediately. If a dataset is loading, right-click announces that loading must finish first and does not start a stale value.
+
+Temporal assets: run `python scripts/prepare-sequences.py --cache /absolute/cache` to reproduce the two small frozen sequences. Their source hashes are pinned; NASA rolling-directory changes fail verification. New frame derivatives use lossless WebP. A four-entry decoded frame cache prefetches one neighbor. Endpoint selection does not wrap, and failed frame loads leave no old value playing under a new timestamp.

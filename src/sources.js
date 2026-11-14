@@ -1,11 +1,13 @@
 import { DATASETS } from './datasets.js';
+import { createFrameCache } from './timeline.js';
 import { preparePalette } from './sampling.js';
-export async function loadSource(id = 'svs-3912') {
+async function decodeSource(id, index = 0) {
   const response = await fetch(DATASETS[id].manifest);
   if (!response.ok) throw new Error(`Source manifest failed (${response.status}).`);
   const manifest = await response.json();
+  const frame=manifest.frames[index];if(!frame)throw new Error('Requested frame is unavailable.');
   const image = new Image();
-  image.src = manifest.frames[0].local;
+  image.src = frame.local;
   await image.decode();
   if (image.naturalWidth !== manifest.width || image.naturalHeight !== manifest.height) throw new Error('Source dimensions do not match the manifest.');
   const canvas = document.createElement('canvas');
@@ -16,5 +18,8 @@ export async function loadSource(id = 'svs-3912') {
   if (!paletteResponse.ok) throw new Error('Source palette could not load.');
   const rgb = (await paletteResponse.json()).rgb;
   const palette = manifest.matching === 'rgb' ? rgb : preparePalette(rgb);
-  return { manifest, palette, imageData: context.getImageData(0, 0, canvas.width, canvas.height) };
+  const display=new Image();display.src=frame.display;await display.decode();
+  return { manifest, frame, frameIndex:index, displayURL:display.src, palette, imageData: context.getImageData(0, 0, canvas.width, canvas.height) };
 }
+
+export const loadSource=createFrameCache(decodeSource,4);

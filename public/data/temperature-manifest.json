@@ -30,6 +30,22 @@
       "display": "./frames/temperature-mercator.png",
       "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005147/frames/2048x1024_2x1_12p/MC01_stage3_GMAO_near_surface_temperature_2048x1024_en-hwtool/00000001.png",
       "sha256": "025243a704a65148c15ce0f91577142a9ddc6534afa8fdefa7666c89e6dc1555"
+    },
+    {
+      "frame": 2,
+      "timestamp": "2026-10-29T10:00:00Z",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005147/frames/2048x1024_2x1_12p/MC01_stage3_GMAO_near_surface_temperature_2048x1024_en-hwtool/00000002.png",
+      "sha256": "36164269cffe2db1dcf94cde1628efe30f27b66be5d4cb0a1408718e38838a34",
+      "local": "./frames/svs-5147-2.webp",
+      "display": "./frames/svs-5147-2-mercator.webp"
+    },
+    {
+      "frame": 3,
+      "timestamp": "2026-10-29T11:00:00Z",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005147/frames/2048x1024_2x1_12p/MC01_stage3_GMAO_near_surface_temperature_2048x1024_en-hwtool/00000003.png",
+      "sha256": "f3b9bbfb3c9d01b1c9b498539a3fecce0183b72f5188db61e9f1e4da7aadd285",
+      "local": "./frames/svs-5147-3.webp",
+      "display": "./frames/svs-5147-3-mercator.webp"
     }
   ],
   "legend": {
@@ -42,5 +58,6 @@
   "representedInterval": "Timestamp transcribed from frame: 29 Oct 2026 05:00 EDT = 09:00 UTC. Averaging interval unknown. This is a frozen downloaded frame, not live weather.",
   "limitations": "Page describes sampling at both 2 m and 3 m; height unresolved. Source palette is non-monotonic in hue; match literal RGB, never generic blue-to-red hue ordering. Terrain shading and repeated colors introduce ambiguity. Logos and date overlay are excluded from sampling; gray pixels are not automatically missing, as the palette contains gray endpoints. Image estimates only, no measured Celsius values.",
   "missingBehavior": "Masked annotation pixels or RGB distance >120 yield no interpretable visual sample. Real zero normalized palette position remains valid.",
-  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "sequenceVerification": "Three fixed-camera 2048x1024 frames, shared source palette and annotation masks; normalization fixed. Ocean times from NASA date table; temperature times transcribed from image labels. Scientific averaging intervals unverified."
 }

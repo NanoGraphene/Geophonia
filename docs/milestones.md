@@ -78,3 +78,11 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Map context-menu gesture selects the clicked location and starts/resumes audio through the same guarded explicit-start flow, in standard and expanded layouts.
 - Already enabled audio stays on; browser context menus elsewhere are unaffected. Loading guard and existing Silence/Escape controls are retained.
 - 60 regression tests, source/label checks and production build passed. Actual browser right-click/autoplay checks remain unverified in this environment.
+
+## Milestone 5 — fixed-location timeline
+- Preserved release 0.4.7 at `origin/stable` (3a74a65), with ongoing work on main.
+- Three frozen frames per dataset: ocean 2007-03-25 12:00 / 16:07 / 20:15 UTC; temperature 2026-10-29 09:00 / 10:00 / 11:00 UTC. NASA date table and temperature frame labels establish times; source hashes pinned in sequence-lock.json.
+- Accessible Previous/Next and timeline arrows/Home/End, explicit UTC range and endpoint feedback; no wrapping. The same controls move into expanded view with the map.
+- One request-generation controller commits decoded frame, metadata, sample and sound together. Loading clears old samples and fades tone; failed loads remain unavailable with retry. Late responses cannot overwrite new choices.
+- Location and surface remain fixed under time stepping. Nearby frame prefetch and a four-entry cache; failed cache entries are retryable. Normalization, palette, dimensions and annotation masks are fixed per dataset. New image derivatives are lossless WebP.
+- 66 automated tests and production build passed. Browser interaction, listening and screen-reader tests remain unverified. Proceed to milestone 6 as authorized.

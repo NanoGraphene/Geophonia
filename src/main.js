@@ -2,7 +2,8 @@ import './styles.css';
 import { formatLocation, geoToMercator, geoToSource, moveLocation, pointerToGeo, mercatorToGeo, MAX_LAT } from './coordinates.js';
 import { createStore, START_LOCATION } from './state.js';
 import { canUseBrowserFullscreen, enterBrowserFullscreen } from './fullscreen.js';
-import { DATASETS, sampleDataset, createSelectionGate } from './datasets.js';
+import { DATASETS, sampleDataset } from './datasets.js';
+import { FrameSelection, timeStep, timeLabel } from './timeline.js';
 import { fitMap, mapViewport, toView, fromView } from './map-view.js';
 import { loadSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
@@ -16,7 +17,11 @@ const audio = new AudioEngine();
 const audioSupported = !!(globalThis.AudioContext || globalThis.webkitAudioContext);
 let source = null, geography = null, surfaceTracker = null, spatialTimer, active = false, legendPlaying = false, legendTimer, starting = false, pointerInside = false;
 const boundaryTracker = new BoundaryTracker();
-const selectionGate = createSelectionGate();
+const frameSelection = new FrameSelection(loadSource);
+const manifests = new Map();
+let timelineLoading=false;
+let beforeTimeChange=()=>{};
+let completedTimeChange=()=>{};
 let pendingDataset = 'svs-3912', expanded = false;
 let viewport = mapViewport(1,1,false);
 function announce(text, immediate = false) {
@@ -41,9 +46,17 @@ function render(state) {
   $('feature-label').textContent = definition.feature;
   $('density-label').textContent = definition.density;
   $('session-topic').textContent = definition.topic;
-  const timestamp = source?.manifest.frames[0].timestamp;
-  const timeLabel = timestamp ? new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(timestamp))+' UTC' : 'Dataset not ready';
-  $('selected-time').textContent = timeLabel; $('session-date').textContent = timeLabel;
+  const timestamp = source?.frame.timestamp;
+  const label=timestamp?timeLabel(timestamp):timelineLoading?'Loading selected time…':'Data unavailable';
+  $('selected-time').textContent=label;$('session-date').textContent=label;
+  const manifest=manifests.get(pendingDataset);
+  const count=manifest?.frames.length??0;
+  const index=frameSelection.target.dataset===pendingDataset?frameSelection.target.index:state.timeIndex;
+  $('timeline').max=Math.max(0,count-1);$('timeline').value=index;
+  $('timeline').disabled=count<2;$('timeline').setAttribute('aria-busy',String(timelineLoading));
+  $('timeline').setAttribute('aria-valuetext',count?`${timelineLoading?'Loading ':!source?'Unavailable: ':''}${timeLabel(manifest.frames[index]?.timestamp??manifest.frames[0].timestamp)}`:'Dataset is loading');
+  $('previous-time').disabled=count<2||index<=0;$('next-time').disabled=count<2||index>=count-1;
+  $('time-range').textContent=count?`${timeLabel(manifest.frames[0].timestamp)} to ${timeLabel(manifest.frames.at(-1).timestamp)} · ${count} available frames`:'Loading available times…';
   $('expanded-readout').textContent = `${formatLocation(state.location)} · ${state.surface} · ${state.sample?.value != null ? Math.round(state.sample.value*100)+'/100 visual' : 'No visual sample'}`;
   $('expanded-audio').textContent = state.audio.enabled ? 'Pause audio' : 'Start audio';
   $('location').textContent = formatLocation(state.location);
@@ -246,43 +259,71 @@ async function initializeGeography() {
     console.error(error);
   } finally { $('retry-geography').disabled = false; }
 }
-async function initialize(id = pendingDataset) {
-  pendingDataset = id; const ticket = selectionGate.next();
-  active = false; stopLegend(); audio.cancelTones(); audio.fade(); source = null;
-  store.update({sample:null,validity:'loading'});
-  $('retry').hidden = true; $('map').setAttribute('aria-busy', 'true');
-  $('load-message').hidden = false; $('load-message').textContent = 'Loading NASA dataset…';
-  for (const b of document.querySelectorAll('[data-legend]')) b.disabled = true;
-  try {
-    const candidate = await loadSource(id);
-    const image = new Image(); image.src = candidate.manifest.frames[0].display; await image.decode();
-    if (!selectionGate.current(ticket)) return;
-    source = candidate; $('frame').src = image.src; $('frame').alt = DATASETS[id].alt;
+function initialize(id = pendingDataset, index = 0, temporal = false) {
+  beforeTimeChange();
+  return frameSelection.select(id,index,{
+   pending(){
+    pendingDataset=id;timelineLoading=true;active=false;stopLegend();audio.cancelTones();audio.fade();source=null;
+    store.update({sample:null,validity:'loading'});
+    $('retry').hidden=true;$('map').setAttribute('aria-busy','true');$('load-message').hidden=false;
+    $('load-message').textContent='Loading NASA frame…';$('time-feedback').textContent='Loading selected frame…';
+    for(const button of document.querySelectorAll('[data-legend]'))button.disabled=true;
+   },
+   commit(candidate){
+    timelineLoading=false;manifests.set(id,candidate.manifest);
+    active=temporal&&store.get().audio.enabled;
+    source = candidate; $('frame').src = candidate.displayURL; $('frame').alt = DATASETS[id].alt;
     $('source-link').href = source.manifest.sourcePage; $('credit-text').textContent = source.manifest.credit;
     $('manifest-link').href = DATASETS[id].manifest;
-    $('original-frame-link').href = source.manifest.frames[0].original;
+    $('original-frame-link').href = source.frame.original;
     $('asset-kind').textContent = `Full-resolution NASA rendered frame · ${source.manifest.width} × ${source.manifest.height} · image-derived values`;
     $('provenance-note').textContent = id === 'svs-5147' ? 'The NASA/GMAO logo and timestamp are embedded in NASA’s original 2048 × 1024 animation frame. This is not the thumbnail, and it is not a raw model data grid. Logo/date regions are excluded from sampling.' : 'This full-resolution ocean frame is a rendered scientific visualization, not a raw model grid.';
-    $('provenance-link').hidden = id !== 'svs-5147';
+    $('provenance-link').hidden = id !== 'svs-5147'||index!==0;
     $('source-legend').src = source.manifest.legend.local;
     $('source-legend').alt = id === 'svs-5147' ? 'NASA near-surface temperature colorbar, minus 40 to plus 40 degrees Celsius. Application values are visual estimates.' : 'NASA sea surface temperature source colorbar, 0 to 32 degrees Celsius. Application values are visual estimates.';
     $('dataset-description').textContent = `${source.manifest.title}. ${source.manifest.representedInterval} ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
     $('matching-description').textContent = source.manifest.matching === 'rgb' ? 'This non-monotonic temperature palette is matched in literal RGB space, not hue. Terrain shading and repeated colors make values approximate; no scientific Celsius values are reported. Annotation rectangles are masked. Coverage is the fraction of neighborhood pixels matching the source legend.' : 'Ocean traces use chromatic source-palette matching. Mean visual palette position controls pitch; trace coverage controls amplitude. These are image-derived features, not measured temperature or current speed.';
     $('palette-track').style.background = source.manifest.matching === 'rgb' ? `linear-gradient(90deg,${source.palette.map(c=>'rgb('+c.join(',')+')').join(',')})` : '';
     $('load-message').hidden = true; $('map').setAttribute('aria-busy','false');
-    resample(store.get().location,{dataset:id,variable:source.manifest.variable??'temperature-color',timestamp:source.manifest.frames[0].timestamp});
+    const committed=resample(store.get().location,{dataset:id,variable:source.manifest.variable??'temperature-color',timeIndex:index,timestamp:source.frame.timestamp});
     for (const b of document.querySelectorAll('[data-legend]')) b.disabled = !audioSupported;
-    announce(`${source.manifest.title} ready. ${sampleDescription(store.get())}`,true);
-    if (!geography && store.get().geographyStatus !== 'loading') await initializeGeography();
-  } catch(error) {
-    if (!selectionGate.current(ticket)) return;
-    source = null; store.update({validity:'load-error',sample:null});
-    $('map').setAttribute('aria-busy','false'); $('load-message').hidden=false;
-    $('load-message').textContent='Selected dataset could not load. Retry or choose another dataset.';
-    $('retry').hidden=false; announce($('load-message').textContent,true); console.error(error);
-  }
+
+    $('time-feedback').textContent=`Selected ${timeLabel(source.frame.timestamp)}`;
+    if(temporal)completedTimeChange(committed);
+    else announce(`${source.manifest.title} ready. ${sampleDescription(store.get())}`,true);
+    // Cache just one neighbor without committing or speaking it.
+    const neighbor=index+1<source.manifest.frames.length?index+1:index-1;
+    if(neighbor>=0)loadSource(id,neighbor).catch(()=>{});
+    if(!geography&&store.get().geographyStatus!=='loading')initializeGeography();
+   },
+   failed(error){
+    timelineLoading=false;source=null;store.update({sample:null,validity:'load-error'});
+    $('map').setAttribute('aria-busy','false');$('load-message').hidden=false;
+    $('load-message').textContent='Selected frame could not load. Retry or choose another time.';
+    $('time-feedback').textContent='Frame unavailable. No old value is being played.';
+    $('retry').hidden=false;announce($('load-message').textContent,true);console.error(error);
+   }
+  });
 }
-$('retry').addEventListener('click',()=>initialize());
+function selectTime(index){
+ const manifest=manifests.get(pendingDataset);if(!manifest)return;
+ const current=frameSelection.target.index;
+ const next=Math.max(0,Math.min(manifest.frames.length-1,index));
+ if(next===current&&source){
+  const text=next===0?'Earliest available time.':next===manifest.frames.length-1?'Latest available time.':'Time already selected.';
+  $('time-feedback').textContent=text;announce(text,true);return;
+ }
+ initialize(pendingDataset,next,true);
+}
+$('timeline').addEventListener('keydown',event=>{
+ if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+ event.preventDefault();const count=manifests.get(pendingDataset)?.frames.length??0;if(count)selectTime(timeStep(frameSelection.target.index,event.key,count));
+});
+$('timeline').addEventListener('input',event=>selectTime(Number(event.target.value)));
+$('previous-time').addEventListener('click',()=>selectTime(frameSelection.target.index-1));
+$('next-time').addEventListener('click',()=>selectTime(frameSelection.target.index+1));
+completedTimeChange=state=>announce(`${timeLabel(state.timestamp)}. ${formatLocation(state.location)}. ${sampleDescription(state)}`,true);
+$('retry').addEventListener('click',()=>initialize(pendingDataset,frameSelection.target.index,true));
 $('dataset').addEventListener('change',event=>initialize(event.target.value));
 for(const [id,location] of [['land-test',{lon:15,lat:23}],['water-test',{lon:-45,lat:30}]]) {
  $(id).addEventListener('click',()=>{
