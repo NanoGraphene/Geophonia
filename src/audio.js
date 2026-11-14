@@ -9,13 +9,14 @@ export class AudioEngine {
   }) {
     this.factory = factory; this.context = null; this.enabled = false;
     this.epoch = 0; this.pendingTones = new Set(); this.lastValidity = null; this.lastVolume = null;
-    this.onInterrupted = () => {};
+    this.onInterrupted = () => {}; this.ducked=false;
   }
   setup() {
     if (this.context) return;
     this.context = this.factory();
     this.master = this.context.createGain(); this.master.gain.value = 0;
-    this.master.connect(this.context.destination);
+    this.duck=this.context.createGain();this.duck.gain.value=this.ducked ? .18 : 1;
+    this.master.connect(this.duck);this.duck.connect(this.context.destination);
     this.level = this.context.createGain(); this.level.gain.value = 0; this.level.connect(this.master);
     this.dataVoice = createSynthVoice(this.context, this.level, 160);
     this.dataVoice.oscillator.start();
@@ -38,6 +39,9 @@ export class AudioEngine {
     this.master.gain.cancelScheduledValues(this.context.currentTime);
     this.master.gain.setValueAtTime(1, this.context.currentTime);
     this.lastValidity = null; return true;
+  }
+  setSpeechDucking(speaking){
+    this.ducked=speaking;if(this.context)this.smooth(this.duck.gain,speaking ? .18 : 1,.03);
   }
   cancelTones(group = null) {
     if (!this.context) return;

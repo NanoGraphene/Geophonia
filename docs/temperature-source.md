@@ -10,7 +10,7 @@ The independent source colorbar spans -40 to +40 °C, with non-monotonic hue, wh
 
 Pitch is the neighborhood mean normalized visual palette position; loudness is matched-color pixel fraction, labelled “Matched color coverage”, not physical concentration. Neighborhood options and normalization stay fixed. Masked/unmatched pixels produce null data and never a fabricated zero. The land/water filter remains driven only by the independent geographic mask. Both land (Sahara and Australian interior) and ocean regression patches are extracted from the real frame and pass sampling/classification tests. No synthetic replacement NASA data is used.
 
-Current implementation loads one frozen frame per dataset, not a time series. Loading freezes no old value under a new date: clear sample and fade sound, preload and decode all assets, then commit source metadata/image/sample together only for the current request. Failure leaves sample unavailable and allows retry or dataset switching.
+Current implementation loads three frozen dated frames per dataset as a small manual time series. Loading freezes no old value under a new date: clear sample and fade sound, preload and decode all assets, then commit source metadata/image/sample together only for the current request. Failure leaves sample unavailable and allows retry or dataset switching.
 
 ## Resolution re-verification
 

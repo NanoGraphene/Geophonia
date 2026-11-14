@@ -86,3 +86,12 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - One request-generation controller commits decoded frame, metadata, sample and sound together. Loading clears old samples and fades tone; failed loads remain unavailable with retry. Late responses cannot overwrite new choices.
 - Location and surface remain fixed under time stepping. Nearby frame prefetch and a four-entry cache; failed cache entries are retryable. Normalization, palette, dimensions and annotation masks are fixed per dataset. New image derivatives are lossless WebP.
 - 66 automated tests and production build passed. Browser interaction, listening and screen-reader tests remain unverified. Proceed to milestone 6 as authorized.
+
+## Milestone 6 — synchronized time speech
+- Browser Narrator with default-on “Speak time changes” after explicit experience start, current UTC time/coordinate/visual-value text, manual Read current data and unsupported/error fallback.
+- Cancels active/pending speech on time selection, spatial selection, toggle-off and global Silence/Escape. 180 ms debounce keeps only the latest completed selection; stale end/error callbacks cannot interfere with newer speech.
+- Dedicated output duck bus lowers data/cue audio to 18% during speech and restores afterward. Pause data audio preserves speech; global silence suppresses automatic speech until an explicit restart/read.
+- Automatic utterances suppress duplicate app live-region value announcements. Accessible control values/text remain available.
+- Reused coordinate wording from existing text_to_speech branch commit 2cac0ce; branch left untouched. Shared interface: currentDataText(state) describes only the committed snapshot, Narrator.say/cancel owns speech, AudioEngine.setSpeechDucking owns output gain.
+- 74 automated tests, source checks and production build passed. Voice availability, listening, focus and screen-reader verification remain unverified in the managed environment.
+- Milestone 7 manual accessibility/listening review is next; no automatic playback added.

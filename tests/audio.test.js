@@ -127,3 +127,9 @@ test('crossing legend auditions a single short impact and silence cancels it',as
  engine.legend('coast-water',prefs);assert.equal(engine.pendingTones.size,1);
  engine.stop();assert.equal(engine.pendingTones.size,0);assert.equal(engine.master.gain.value,0);
 });
+test('speech ducking lowers the output bus, restores it, and cannot undo global silence',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();engine.update(valid,prefs,true);
+ engine.setSpeechDucking(true);assert.equal(engine.duck.gain.value,.18);assert.equal(engine.level.gain.value,.03);
+ engine.setSpeechDucking(false);assert.equal(engine.duck.gain.value,1);
+ engine.stop();engine.setSpeechDucking(false);assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
+});

@@ -35,7 +35,7 @@ At most the two most recent crossings from a movement are queued, spaced 100 ms 
 
 Legend buttons audition entering-land and entering-water sounds individually. Reference examples pause exploration; moving/refocusing resumes it. Silence/Escape and inactive tabs cancel all voices and cues. Volume changes cancel queued notes, including zero-volume changes. Pointer exit fades the data voice; a brief crossing/exit cue may finish. No background guide remains.
 
-Automated waveform/envelope/cancellation and geographic path tests pass. Sound recognizability, loudness comfort, real browser behavior and screen-reader usability remain unverified without manual listening/browser access. No timeline or application TTS is included yet.
+Automated waveform/envelope/cancellation and geographic path tests pass. Sound recognizability, loudness comfort, real browser behavior and screen-reader usability remain unverified without manual listening/browser access. Timeline and optional application TTS are implemented as described below.
 
 ## Geographic classification (milestone 4)
 
@@ -73,3 +73,13 @@ Fullscreen correction supersedes the earlier two-step fullscreen description: Ex
 Both datasets expose three explicit UTC timestamps. Ocean intervals are 247 and 248 minutes, from NASA's frame-date table; temperature times come from embedded EDT labels converted to UTC. This is a frozen, manual sequence, not automatic playback or live weather. Each dataset retains one fixed palette, mask and normalization across all frames. Timestamps indicate source frame time; scientific averaging intervals remain unverified.
 
 The timeline is a native range plus Previous/Next buttons, with Left/Right/Home/End behavior scoped to timeline focus. Position, audio preferences and surface classification do not change when time changes. Map keys still move geographically. Pending requests clear sampled value and fade audio; only the newest successfully decoded source and display image commit together with sampled value/timestamp. Failures stay unavailable, allow retry and do not revive stale loads. Cache capacity is four decoded frame objects; a single neighbor is prefetched without committing, speaking or changing selection.
+
+## Time-change speech (milestone 6)
+
+Narration starts only after an explicit experience action and speaks a committed snapshot: actual UTC source date/time, spelled-out coordinates, variable/visual feature, normalized image-derived value and coverage. Missing visual samples are described without fabricating scientific zeros or measurements. No scientific units are asserted for image-derived palette position. Underlying source averaging intervals remain unverified.
+
+The default-on Speak time changes preference is separate from data Pause. Toggle off cancels active and scheduled narration immediately; toggle on applies to future time changes. Read current data explicitly reads the current committed snapshot even if automatic speech is off. If loading/failed, it reports not ready rather than using an old frame. Silent global controls cancel every speech/tone and suppress future automatic narration until an explicit Start/read. Browser speech availability and errors have text fallback.
+
+Every requested source/time selection cancels previous narration before loading. Only the latest successful commit can request a new utterance; a 180 ms speech debounce prevents rapid key-repeat backlog. Old utterance callbacks carry generation IDs and cannot unduck or emit fallback over newer speech. Spatial movement also cancels stale snapshot speech. The app clears pending spatial live-region text and avoids its own duplicate value announcements while TTS handles the change. Native screen-reader control announcements are outside the app's speech control.
+
+Speech onstart lowers a dedicated output bus to 0.18 using 30 ms smoothing; end/error/cancel restores it to 1. Master mute remains closed after global silence regardless of late speech events. Speech synthesis itself is browser-managed, separate from data volume. Manual real-browser listening and screen-reader checks remain pending.

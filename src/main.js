@@ -3,6 +3,8 @@ import { formatLocation, geoToMercator, geoToSource, moveLocation, pointerToGeo,
 import { createStore, START_LOCATION } from './state.js';
 import { canUseBrowserFullscreen, enterBrowserFullscreen } from './fullscreen.js';
 import { DATASETS, sampleDataset } from './datasets.js';
+import { Narrator } from './speech.js';
+import { currentDataText } from './announcements.js';
 import { FrameSelection, timeStep, timeLabel } from './timeline.js';
 import { fitMap, mapViewport, toView, fromView } from './map-view.js';
 import { loadSource } from './sources.js';
@@ -14,6 +16,10 @@ import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
+let speechSession=false;
+const narrator=new Narrator({onSpeaking:speaking=>audio.setSpeechDucking(speaking),onFallback:text=>{
+ $('speech-availability').textContent='Speech could not play. Current information is available as accessible text.';announce(text,true);
+}});
 const audioSupported = !!(globalThis.AudioContext || globalThis.webkitAudioContext);
 let source = null, geography = null, surfaceTracker = null, spatialTimer, active = false, legendPlaying = false, legendTimer, starting = false, pointerInside = false;
 const boundaryTracker = new BoundaryTracker();
@@ -98,6 +104,7 @@ function stopLegend() {
   clearTimeout(legendTimer); audio.cancelLegend(); legendPlaying = false; $('legend-status').textContent = '';
 }
 function select(location, immediate = false, mode = 'relocate') {
+  narrator.cancel();
   if (legendPlaying) stopLegend();
   active = true;
   const previous=store.get().location;
@@ -117,6 +124,7 @@ function select(location, immediate = false, mode = 'relocate') {
   announce(`${formatLocation(location)}. ${surfaceDescription(state)}. ${sampleDescription(state)}${cue ? ' ' + cue + '.' : ''}`, immediate);
 }
 function silence(message = 'All application audio is silent.') {
+  speechSession=false;narrator.cancel();
   active = false; starting = false; pointerInside = false; stopLegend(); audio.stop();
   boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
   store.update({ audio: { ...store.get().audio, enabled: false } });
@@ -213,6 +221,7 @@ async function startAudio() {
     const started = await audio.start();
     starting = false;
     if (!started) { render(store.get()); return false; }
+    speechSession=true;
     active = true; pointerInside = false; boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
     store.update({ audio: { ...store.get().audio, enabled: true } });
     return true;
@@ -223,7 +232,7 @@ async function startAudio() {
 }
 $('start-audio').addEventListener('click', async () => {
   stopLegend();
-  if (store.get().audio.enabled) silence('Audio paused. Your location is preserved.');
+  if (store.get().audio.enabled) {active=false;audio.stop();store.update({audio:{...store.get().audio,enabled:false}});$('audio-status').textContent='Data audio paused. Time speech remains controlled separately.';}
   else await startAudio();
 });
 $('silence').addEventListener('click', () => silence());
@@ -281,7 +290,7 @@ function initialize(id = pendingDataset, index = 0, temporal = false) {
     $('provenance-link').hidden = id !== 'svs-5147'||index!==0;
     $('source-legend').src = source.manifest.legend.local;
     $('source-legend').alt = id === 'svs-5147' ? 'NASA near-surface temperature colorbar, minus 40 to plus 40 degrees Celsius. Application values are visual estimates.' : 'NASA sea surface temperature source colorbar, 0 to 32 degrees Celsius. Application values are visual estimates.';
-    $('dataset-description').textContent = `${source.manifest.title}. ${source.manifest.representedInterval} ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
+    $('dataset-description').textContent = `${source.manifest.title}. Selected frame ${timeLabel(source.frame.timestamp)}. Scientific averaging interval unverified. ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
     $('matching-description').textContent = source.manifest.matching === 'rgb' ? 'This non-monotonic temperature palette is matched in literal RGB space, not hue. Terrain shading and repeated colors make values approximate; no scientific Celsius values are reported. Annotation rectangles are masked. Coverage is the fraction of neighborhood pixels matching the source legend.' : 'Ocean traces use chromatic source-palette matching. Mean visual palette position controls pitch; trace coverage controls amplitude. These are image-derived features, not measured temperature or current speed.';
     $('palette-track').style.background = source.manifest.matching === 'rgb' ? `linear-gradient(90deg,${source.palette.map(c=>'rgb('+c.join(',')+')').join(',')})` : '';
     $('load-message').hidden = true; $('map').setAttribute('aria-busy','false');
@@ -322,7 +331,21 @@ $('timeline').addEventListener('keydown',event=>{
 $('timeline').addEventListener('input',event=>selectTime(Number(event.target.value)));
 $('previous-time').addEventListener('click',()=>selectTime(frameSelection.target.index-1));
 $('next-time').addEventListener('click',()=>selectTime(frameSelection.target.index+1));
-completedTimeChange=state=>announce(`${timeLabel(state.timestamp)}. ${formatLocation(state.location)}. ${sampleDescription(state)}`,true);
+beforeTimeChange=()=>{narrator.cancel();clearTimeout(spatialTimer);$('status').textContent='';};
+completedTimeChange=state=>{
+ clearTimeout(spatialTimer);$('status').textContent='';
+ const text=currentDataText(state);
+ if(!speechSession||!state.speakTimeChanges||!narrator.say(text))announce(text,true);
+};
+$('speak-time').addEventListener('change',event=>{
+ narrator.setEnabled(event.target.checked);store.update({speakTimeChanges:event.target.checked});
+});
+$('read-current').addEventListener('click',()=>{
+ if(!source||!store.get().sample){announce('Selected frame is not ready. No current data to read.',true);return;}
+ speechSession=true;clearTimeout(spatialTimer);$('status').textContent='';
+ const text=currentDataText(store.get());if(!narrator.say(text,{explicit:true}))announce(text,true);
+});
+$('speech-availability').textContent=narrator.available?'Time speech starts after Start Audio or Read current data. Pause data audio leaves speech available; Silence all audio stops both.':'Browser speech is unavailable. Time and values remain available through accessible text.';
 $('retry').addEventListener('click',()=>initialize(pendingDataset,frameSelection.target.index,true));
 $('dataset').addEventListener('change',event=>initialize(event.target.value));
 for(const [id,location] of [['land-test',{lon:15,lat:23}],['water-test',{lon:-45,lat:30}]]) {
