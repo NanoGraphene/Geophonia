@@ -13,7 +13,7 @@ for(const file of await readdir('src')) if(file.endsWith('.js')) execFileSync(pr
 for(const definition of Object.values(DATASETS)){
  const manifest=JSON.parse(await readFile('public/'+definition.manifest.replace(/^\.\//,'')));
  for(const frame of manifest.frames)for(const path of [frame.local,frame.display])await access('public/'+path.replace(/^\.\//,''));
- await access('public/'+definition.palette.replace(/^\.\//,''));
+ const palette=manifest.feature?.paletteUrl??manifest.paletteUrl??definition.palette;if(palette)await access('public/'+palette.replace(/^\.\//,''));
 }
 assert.ok(html.includes('aria-live="polite"'));
 assert.ok(html.includes('id="silence"'));

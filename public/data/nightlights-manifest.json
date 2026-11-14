@@ -1,0 +1,106 @@
+{
+  "id": "nightlights",
+  "title": "Black Marble annual night lights",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5313/",
+  "credit": "NASA\u2019s Scientific Visualization Studio; Kel Elkins; NASA Black Marble/VIIRS science team",
+  "width": 2048,
+  "height": 1152,
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "authoritativeCRS": null,
+    "validation": "Empirical full-image world alignment, not embedded georeferencing; see docs/additional-datasets.json."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "width": 1024,
+    "height": 1024,
+    "latitudeLimit": 85.0511287798066,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "frames": [
+    {
+      "timestamp": null,
+      "timeLabel": "2012 annual average",
+      "year": 2012,
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005200/a005276/nightlights_flat_series_stills_only_lights_2160p3_h265.mp4",
+      "originalFrame": 0,
+      "nativeDimensions": [
+        3840,
+        2160
+      ],
+      "local": "./frames/extra-nightlights-2012.webp",
+      "display": "./frames/extra-nightlights-2012-mercator.webp",
+      "localSha256": "b7c3a2651765aa5ceebac7e8961e45a2ec6b991c0805dd614b9c057f5c57827a",
+      "displaySha256": "d072c5c01c4f8ca931b9b8ee0f5c1fe6ddb6960c396782a8c76122976a2e9762"
+    },
+    {
+      "timestamp": null,
+      "timeLabel": "2018 annual average",
+      "year": 2018,
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005200/a005276/nightlights_flat_series_stills_only_lights_2160p3_h265.mp4",
+      "originalFrame": 6,
+      "nativeDimensions": [
+        3840,
+        2160
+      ],
+      "local": "./frames/extra-nightlights-2018.webp",
+      "display": "./frames/extra-nightlights-2018-mercator.webp",
+      "localSha256": "ab80e08b0651bb0209c6b111e4b29b9071ba8769ee804c4edd8a523b7a73d895",
+      "displaySha256": "809270829a23a97a67f266c3be70e3c33109fc398032e0f71f27f99c97115298"
+    },
+    {
+      "timestamp": null,
+      "timeLabel": "2023 annual average",
+      "year": 2023,
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005200/a005276/nightlights_flat_series_stills_only_lights_2160p3_h265.mp4",
+      "originalFrame": 11,
+      "nativeDimensions": [
+        3840,
+        2160
+      ],
+      "local": "./frames/extra-nightlights-2023.webp",
+      "display": "./frames/extra-nightlights-2023-mercator.webp",
+      "localSha256": "1f2f4a742503801525552a0e83cb4fc4f619e7c208a6db516966ebba031a322b",
+      "displaySha256": "cf9d7b0cc1a47726982b99037c614e3cb04af65720500a9400d4c76a2bdfbc58"
+    }
+  ],
+  "missingBehavior": "Masked annotation pixels and unmatched feature colors are unavailable. Valid zero brightness remains distinct from missing data.",
+  "relatedSourcePage": "https://svs.gsfc.nasa.gov/5276/",
+  "feature": {
+    "method": "brightness",
+    "kind": "visual",
+    "name": "Night-light image brightness",
+    "unit": "percent image brightness",
+    "estimate": true
+  },
+  "valueScale": {
+    "min": 0,
+    "max": 100,
+    "unit": "percent image brightness",
+    "symbol": "%",
+    "decimals": 1
+  },
+  "mapping": {
+    "amplitude": "value",
+    "curve": "sqrt"
+  },
+  "masks": [
+    [
+      870,
+      690,
+      1050,
+      760
+    ]
+  ],
+  "description": "Flat-map Black Marble annual-average light imagery for 2012, 2018 and 2023. Image brightness is a visual feature, not calibrated radiance.",
+  "provenanceNote": "Frames extracted from NASA\u2019s 3840 \u00d7 2160 flat-map annual movie linked from the EIC collection, then resized to 2048 \u00d7 1152. Embedded year labels were visually verified and masked from sampling.",
+  "representedInterval": "Each selected frame represents its labeled annual average; no January 1 instant or precise acquisition time is inferred.",
+  "limitations": "Rendered brightness is not calibrated physical radiance or a population measure. Dark pixels are valid low/zero visual brightness. Downsampling and compression can smooth small light clusters. No signed change palette or zoomed inset frames are used."
+}

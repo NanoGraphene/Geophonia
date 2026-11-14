@@ -68,5 +68,27 @@
     "symbol": "\u00b0C",
     "variable": "Near-surface temperature",
     "method": "Linear interpolation of position on the NASA source colorbar; rounded to whole degrees. Image-derived approximation, not a raw model-grid measurement."
-  }
+  },
+  "feature": {
+    "method": "palette",
+    "name": "Near-surface temperature",
+    "matching": "rgb",
+    "estimate": true,
+    "description": "Approximate degrees Celsius from source colorbar; normalized visual position retained for audio mapping."
+  },
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ]
+  },
+  "mapping": {
+    "amplitude": "coverage",
+    "curve": "linear"
+  },
+  "provenanceUrl": "./data/temperature-provenance.json",
+  "provenanceNote": "NASA\u2019s full-resolution source embeds its own logo/date. Annotation rectangles are excluded from sampling."
 }

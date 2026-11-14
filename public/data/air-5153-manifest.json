@@ -1,0 +1,113 @@
+{
+  "id": "air-5153",
+  "title": "GEOS-FP Carbon monoxide",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5153/",
+  "credit": "NASA\u2019s Global Modeling and Assimilation Office; visualization Joseph V. Ardizzone (NASA/GSFC)",
+  "width": 2048,
+  "height": 1024,
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "authoritativeCRS": null,
+    "validation": "Empirical full-image world alignment, not embedded georeferencing; see docs/additional-datasets.json."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "width": 1024,
+    "height": 1024,
+    "latitudeLimit": 85.0511287798066,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "frames": [
+    {
+      "timestamp": "2026-10-29T09:00:00Z",
+      "timeLabel": "29 Oct 2026 \u00b7 09:00 UTC",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005153/frames/2048x1024_2x1_12p/MC03_stage4_GMAO_CO_2048x1024_en-hwtool/00000001.png",
+      "originalSha256": "f2130d956e18b584e7acef9a1646bbd2965f690c556327528e21105ab86b672c",
+      "local": "./frames/extra-air-5153.webp",
+      "display": "./frames/extra-air-5153-mercator.webp",
+      "localSha256": "88bb63fde32b2a6493692ef926228376a291af4338474e1e99f6936790ff0e70",
+      "displaySha256": "bd0de9bfca02c2888a46ba5d3431aec9eee885c1c8e10ee127169797b86a10fc"
+    }
+  ],
+  "missingBehavior": "Masked annotation pixels and unmatched feature colors are unavailable. Valid zero brightness remains distinct from missing data.",
+  "feature": {
+    "method": "palette",
+    "matching": "rgb",
+    "kind": "quantitative",
+    "name": "Carbon monoxide",
+    "unit": "parts per billion by volume",
+    "paletteUrl": "./data/air-5153-palette.json",
+    "estimate": true,
+    "background": {
+      "maxChroma": 12,
+      "maxBrightness": 235
+    }
+  },
+  "matching": "rgb",
+  "paletteUrl": "./data/air-5153-palette.json",
+  "valueScale": {
+    "min": 40,
+    "max": 500,
+    "unit": "parts per billion by volume",
+    "symbol": "ppbv",
+    "decimals": 0,
+    "interpolation": "linear",
+    "anchors": [
+      {
+        "position": 0.0,
+        "value": 40
+      },
+      {
+        "position": 0.3015267175572519,
+        "value": 100
+      },
+      {
+        "position": 0.5330788804071247,
+        "value": 130
+      },
+      {
+        "position": 0.7646310432569975,
+        "value": 200
+      },
+      {
+        "position": 1.0,
+        "value": 500
+      }
+    ],
+    "method": "Interpolation between visually transcribed labeled source ticks. Log interpolation is used between PM2.5/NOx anchors; CO uses nonuniform piecewise linear anchors. Values are estimates from rendered colors."
+  },
+  "masks": [
+    [
+      0,
+      0,
+      350,
+      85
+    ],
+    [
+      0,
+      930,
+      520,
+      1024
+    ]
+  ],
+  "legend": {
+    "local": "./frames/extra-air-5153-legend.png",
+    "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005153/CO_colorbar_plain.png",
+    "meaning": "Carbon monoxide source colorbar; labeled ticks and nonuniform spacing are retained in valueScale.anchors."
+  },
+  "mapping": {
+    "amplitude": "value",
+    "curve": "linear"
+  },
+  "provenanceNote": "Full-resolution 2048 \u00d7 1024 GEOS-FP rendered frame. Logo/date overlays are masked. The related SVS 5533 composite interleaves pollutants in strips and is not used as a single global scalar.",
+  "description": "Frozen full-map GEOS-FP Carbon monoxide layer, linked from the supplied Air Quality Model Runs resource. It is a separate GEOS-FP product, not the GEOS-CF striped composite.",
+  "representedInterval": "29 Oct 2026 05:00 EDT transcribed from the embedded frame label equals 09:00 UTC. Scientific averaging interval unverified; not live air quality.",
+  "limitations": "Rendered image colors and terrain/background compositing limit quantitative accuracy. Whole/decimal values are approximate colorbar estimates, not raw model-grid measurements."
+}

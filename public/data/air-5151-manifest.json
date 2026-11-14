@@ -1,0 +1,117 @@
+{
+  "id": "air-5151",
+  "title": "GEOS-FP PM2.5",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5151/",
+  "credit": "NASA\u2019s Global Modeling and Assimilation Office; visualization Joseph V. Ardizzone (NASA/GSFC)",
+  "width": 2048,
+  "height": 1024,
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "authoritativeCRS": null,
+    "validation": "Empirical full-image world alignment, not embedded georeferencing; see docs/additional-datasets.json."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "width": 1024,
+    "height": 1024,
+    "latitudeLimit": 85.0511287798066,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "frames": [
+    {
+      "timestamp": "2026-10-29T09:00:00Z",
+      "timeLabel": "29 Oct 2026 \u00b7 09:00 UTC",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005151/frames/2048x1024_2x1_12p/MC01_stage4_GMAO_pm25_2048x1024_en-hwtool/00000001.png",
+      "originalSha256": "8298865f180919001e1ce03e9b4603739adae44d1f1140aea0c93c8c0e10e511",
+      "local": "./frames/extra-air-5151.webp",
+      "display": "./frames/extra-air-5151-mercator.webp",
+      "localSha256": "cdd6f5b10d79837b8c117eaf1be5a46ba8cb346c9f2066bc2745e96cba4e82f8",
+      "displaySha256": "dc65468435e2f9fe19b99e332a0f3fa342cb6074afdb6e0cc8a45e5e7876cff5"
+    }
+  ],
+  "missingBehavior": "Masked annotation pixels and unmatched feature colors are unavailable. Valid zero brightness remains distinct from missing data.",
+  "feature": {
+    "method": "palette",
+    "matching": "rgb",
+    "kind": "quantitative",
+    "name": "PM2.5",
+    "unit": "micrograms per cubic meter",
+    "paletteUrl": "./data/air-5151-palette.json",
+    "estimate": true,
+    "background": {
+      "maxChroma": 12,
+      "maxBrightness": 235
+    }
+  },
+  "matching": "rgb",
+  "paletteUrl": "./data/air-5151-palette.json",
+  "valueScale": {
+    "min": 0.4,
+    "max": 409.6,
+    "unit": "micrograms per cubic meter",
+    "symbol": "\u00b5g/m\u00b3",
+    "decimals": 1,
+    "interpolation": "log",
+    "anchors": [
+      {
+        "position": 0.0,
+        "value": 0.4
+      },
+      {
+        "position": 0.18992248062015504,
+        "value": 1.6
+      },
+      {
+        "position": 0.39405684754521964,
+        "value": 6.4
+      },
+      {
+        "position": 0.5981912144702842,
+        "value": 25.6
+      },
+      {
+        "position": 0.8023255813953488,
+        "value": 102.4
+      },
+      {
+        "position": 1.0,
+        "value": 409.6
+      }
+    ],
+    "method": "Interpolation between visually transcribed labeled source ticks. Log interpolation is used between PM2.5/NOx anchors; CO uses nonuniform piecewise linear anchors. Values are estimates from rendered colors."
+  },
+  "masks": [
+    [
+      0,
+      0,
+      350,
+      85
+    ],
+    [
+      0,
+      930,
+      520,
+      1024
+    ]
+  ],
+  "legend": {
+    "local": "./frames/extra-air-5151-legend.png",
+    "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005151/PM2.5_colorbar_plain.png",
+    "meaning": "PM2.5 source colorbar; labeled ticks and nonuniform spacing are retained in valueScale.anchors."
+  },
+  "mapping": {
+    "amplitude": "value",
+    "curve": "log"
+  },
+  "provenanceNote": "Full-resolution 2048 \u00d7 1024 GEOS-FP rendered frame. Logo/date overlays are masked. The related SVS 5533 composite interleaves pollutants in strips and is not used as a single global scalar.",
+  "description": "Frozen full-map GEOS-FP PM2.5 layer, linked from the supplied Air Quality Model Runs resource. It is a separate GEOS-FP product, not the GEOS-CF striped composite.",
+  "representedInterval": "29 Oct 2026 05:00 EDT transcribed from the embedded frame label equals 09:00 UTC. Scientific averaging interval unverified; not live air quality.",
+  "limitations": "Rendered image colors and terrain/background compositing limit quantitative accuracy. Whole/decimal values are approximate colorbar estimates, not raw model-grid measurements."
+}

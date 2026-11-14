@@ -226,3 +226,6 @@ dist/
 
 # Generated neural runtime, recreated by predev/prebuild
 public/runtime/
+
+work/
+public/downloads/

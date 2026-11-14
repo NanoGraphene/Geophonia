@@ -1,0 +1,96 @@
+{
+  "id": "aerosols",
+  "title": "GEOS Aerosols \u00b7 19 August 2025",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5669/",
+  "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+  "width": 1920,
+  "height": 1080,
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "authoritativeCRS": null,
+    "validation": "Empirical full-image world alignment, not embedded georeferencing; see docs/additional-datasets.json."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "width": 1024,
+    "height": 1024,
+    "latitudeLimit": 85.0511287798066,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "frames": [
+    {
+      "timestamp": "2025-08-19T20:00:00Z",
+      "timeLabel": "19 Aug 2025 \u00b7 20:00 UTC",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005600/a005669/Aerosols_2025-08-19T20_00_00_1920x1080.png",
+      "originalSha256": "0c6a8f6c46fb52a2f9a636bbd804fc6e5e23454dcb2f0d3fe04c653c772e8a7a",
+      "local": "./frames/extra-aerosols.webp",
+      "display": "./frames/extra-aerosols-mercator.webp",
+      "localSha256": "4c033d67e09bda0df743963eab7e262503ec1347985e198c1e0a60b448f662ae",
+      "displaySha256": "5d20c516c292df5a17b8f473bc89ed5b11a44f909d2bb76dc8e4932f0eb8e7f0"
+    }
+  ],
+  "missingBehavior": "Masked annotation pixels and unmatched feature colors are unavailable. Valid zero brightness remains distinct from missing data.",
+  "feature": {
+    "method": "categories",
+    "kind": "visual",
+    "name": "Aerosol color strength",
+    "unit": "percent visual color strength",
+    "estimate": true,
+    "categories": [
+      {
+        "id": "sea-salt",
+        "name": "Sea salt",
+        "hue": [
+          170,
+          240
+        ]
+      },
+      {
+        "id": "dust",
+        "name": "Dust",
+        "hue": [
+          265,
+          325
+        ]
+      },
+      {
+        "id": "smoke",
+        "name": "Smoke",
+        "hue": [
+          0,
+          45
+        ]
+      },
+      {
+        "id": "sulfates",
+        "name": "Sulfates",
+        "hue": [
+          65,
+          165
+        ]
+      }
+    ]
+  },
+  "valueScale": {
+    "min": 0,
+    "max": 100,
+    "unit": "percent visual color strength",
+    "symbol": "%",
+    "decimals": 0
+  },
+  "mapping": {
+    "amplitude": "value",
+    "curve": "linear"
+  },
+  "description": "GEOS model aerosol still: sea salt blue, dust purple/magenta, smoke orange/red and sulfates green. Select a category; its visual color strength drives sound.",
+  "provenanceNote": "Official 1920 \u00d7 1080 full-map visualization still, not a search thumbnail. Timestamp comes from NASA\u2019s description and asset filename.",
+  "representedInterval": "Model visualization at 19 Aug 2025 20:00 UTC; model averaging interval unverified.",
+  "limitations": "Color categories identify species, not an increasing scalar concentration. Hue selection and chroma describe the rendered overlay only; terrain, mixed aerosols and lights can contaminate matching. No aerosol concentration units are inferred."
+}

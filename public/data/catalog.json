@@ -1,0 +1,113 @@
+{
+  "datasets": [
+    {
+      "id": "svs-3912",
+      "manifest": "./data/source-manifest.json",
+      "palette": "./data/palette.json",
+      "label": "Ocean currents \u00b7 temperature color",
+      "feature": "Temperature-color position",
+      "density": "Visual trace coverage",
+      "topic": "OCEAN CURRENTS",
+      "alt": "NASA ocean surface flows colored by sea surface temperature."
+    },
+    {
+      "id": "svs-5147",
+      "manifest": "./data/temperature-manifest.json",
+      "palette": "./data/temperature-palette.json",
+      "label": "Near-surface temperature \u00b7 land + ocean",
+      "feature": "Temperature-color position",
+      "density": "Matched color coverage",
+      "topic": "LAND + OCEAN TEMPERATURE",
+      "alt": "NASA GEOS-FP near-surface temperature visualization covering land and ocean."
+    },
+    {
+      "id": "air-5151",
+      "manifest": "./data/air-5151-manifest.json",
+      "label": "Air quality \u00b7 PM2.5",
+      "feature": "PM2.5",
+      "density": "Matched color coverage",
+      "topic": "GEOS-FP PM2.5",
+      "alt": "GEOS-FP PM2.5 shown as a flat NASA map."
+    },
+    {
+      "id": "air-5152",
+      "manifest": "./data/air-5152-manifest.json",
+      "label": "Air quality \u00b7 ozone",
+      "feature": "Ozone",
+      "density": "Matched color coverage",
+      "topic": "GEOS-FP OZONE",
+      "alt": "GEOS-FP Ozone shown as a flat NASA map."
+    },
+    {
+      "id": "air-5153",
+      "manifest": "./data/air-5153-manifest.json",
+      "label": "Air quality \u00b7 carbon monoxide",
+      "feature": "Carbon monoxide",
+      "density": "Matched color coverage",
+      "topic": "GEOS-FP CARBON MONOXIDE",
+      "alt": "GEOS-FP Carbon monoxide shown as a flat NASA map."
+    },
+    {
+      "id": "air-5154",
+      "manifest": "./data/air-5154-manifest.json",
+      "label": "Air quality \u00b7 nitrogen oxides",
+      "feature": "Nitrogen oxides",
+      "density": "Matched color coverage",
+      "topic": "GEOS-FP NITROGEN OXIDES",
+      "alt": "GEOS-FP Nitrogen oxides shown as a flat NASA map."
+    },
+    {
+      "id": "nightlights",
+      "manifest": "./data/nightlights-manifest.json",
+      "label": "Night lights \u00b7 annual brightness",
+      "feature": "Night-light image brightness",
+      "density": "Visible feature coverage",
+      "topic": "BLACK MARBLE ANNUAL NIGHT LIGHTS",
+      "alt": "Black Marble annual night lights shown as a flat NASA map."
+    },
+    {
+      "id": "aerosols",
+      "manifest": "./data/aerosols-manifest.json",
+      "label": "Aerosols \u00b7 select type",
+      "feature": "Aerosol color strength",
+      "density": "Visible feature coverage",
+      "topic": "GEOS AEROSOLS \u00b7 19 AUGUST 2025",
+      "alt": "GEOS Aerosols \u00b7 19 August 2025 shown as a flat NASA map."
+    },
+    {
+      "id": "lightning",
+      "manifest": "./data/lightning-manifest.json",
+      "label": "Lightning \u00b7 visible marks",
+      "feature": "Lightning-mark brightness",
+      "density": "Visible feature coverage",
+      "topic": "ISS LIS LIGHTNING \u00b7 FLAT TEXTURE",
+      "alt": "ISS LIS lightning \u00b7 flat texture shown as a flat NASA map."
+    }
+  ],
+  "unavailable": [
+    {
+      "id": "svs-5196",
+      "title": "DYAMOND CO\u2082",
+      "sourcePage": "https://svs.gsfc.nasa.gov/5196/",
+      "reason": "Published camera-orbit/zoom globe assets are 3D. A georeferenced 2D input is required."
+    },
+    {
+      "id": "svs-4950",
+      "title": "GEDI forest height",
+      "sourcePage": "https://svs.gsfc.nasa.gov/4950/",
+      "reason": "Published visualizations use globe/camera moves and exaggerated 3D heights. A flat canopy-height grid is required."
+    },
+    {
+      "id": "svs-4960",
+      "title": "Atmospheric rivers",
+      "sourcePage": "https://svs.gsfc.nasa.gov/4960/",
+      "reason": "Published assets show a three-dimensional view. A verified flat scalar layer is required."
+    },
+    {
+      "id": "svs-5425",
+      "title": "Perpetual Ocean 2",
+      "sourcePage": "https://svs.gsfc.nasa.gov/5425/",
+      "reason": "Rotating-globe/3D assets excluded from this pass."
+    }
+  ]
+}

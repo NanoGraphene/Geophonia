@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import{placeText,valueText,dateText,temperatureEstimate}from'../src/narration-text.js';
-const manifest={valueScale:{min:-40,max:40}};
+const manifest={valueScale:{min:-40,max:40,unit:'degrees Celsius'}};
 test('value shortcut speaks temperature and unit, preserving real zero and missing values',()=>{
   assert.equal(temperatureEstimate({value:.5},manifest),0);
   assert.match(valueText({sample:{value:.5}},manifest),/Approximately 0 degrees Celsius/);

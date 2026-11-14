@@ -1,9 +1,15 @@
 import { geoToSource } from './coordinates.js';
-export const DATASETS = {
- 'svs-3912': { manifest: './data/source-manifest.json', palette: './data/palette.json', label: 'Ocean currents · temperature color', feature: 'Temperature-color position', density: 'Visual trace coverage', topic: 'OCEAN CURRENTS', alt: 'NASA ocean surface flows colored by sea surface temperature.' },
- 'svs-5147': { manifest: './data/temperature-manifest.json', palette: './data/temperature-palette.json', label: 'Near-surface temperature · land + ocean', feature: 'Temperature-color position', density: 'Matched color coverage', topic: 'LAND + OCEAN TEMPERATURE', alt: 'NASA GEOS-FP near-surface temperature visualization covering land and ocean.' }
-};
-export function sampleDataset(source, location, radius, oceanSampler) {
+import catalog from '../public/data/catalog.json' with {type:'json'};
+import { valueFromPosition } from './data-profiles.js';
+import { sampleFeatures } from './feature-sampling.js';
+export const DATASETS=Object.fromEntries(catalog.datasets.map(d=>[d.id,d]));
+export const UNAVAILABLE_DATASETS=catalog.unavailable;
+export function registerDataset(id,definition){DATASETS[id]={id,...definition};}
+export function sampleDataset(source, location, radius, oceanSampler, options = {}) {
+ const sample=source.manifest.feature || source.gridData?sampleFeatures(source,location,radius,options):legacySample(source,location,radius,oceanSampler);
+ return {...sample,measurement:sample.measurement??valueFromPosition(sample.value,source.manifest.valueScale)};
+}
+function legacySample(source,location,radius,oceanSampler) {
  if (source.manifest.matching !== 'rgb') return oceanSampler(source.imageData, location, radius, source.palette);
  const { width, height, data } = source.imageData, center = geoToSource(location.lon, location.lat, width, height);
  let total = 0, matched = 0, sum = 0;

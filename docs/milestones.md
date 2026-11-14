@@ -92,3 +92,9 @@ Supersedes the Kitten model experiment with zero application-model downloads and
 Restores the verified three-frame sequences as assets only and implements time loading/controls in this stable-based branch. Left/Right changes time; Shift+Left/Right moves spatially on the map. The standard/expanded sliders share requested frame state; original-resolution samples, display image and date commit together behind latest-request guards. No old TTS branch is merged.
 
 82 automated checks pass. Browser/listening/layout verification remains pending because the managed browser-control tool is unavailable.
+
+## 0.6.0 — Profile-driven 2D datasets and automatic mappings
+
+Nine usable 2D catalog profiles now share metadata-driven sampling, units, speech, geographic coverage and sound mappings. Added four full-map air-quality alternatives, night-light annual frames, aerosol category selection and flat lightning texture frames. Three-dimensional sources are excluded with explicit reasons until a verified 2D input is available. A local regular-grid CSV importer detects columns and one all-frame range, preserving zeros/missing cells and timestamp precision. Users can override pitch endpoints, source-value range, curve and amplitude channel. See `dataset-model.md` for contracts/limits and `additional-datasets.json` for asset provenance.
+
+102 automated checks pass. Browser/listening/assistive-technology checks remain pending. The 0.5.0 shortcut/timeline update was published first; this revision is a separate reviewable follow-up branch.

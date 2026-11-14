@@ -2,9 +2,9 @@ import './styles.css';
 import { formatLocation, geoToMercator, geoToSource, moveLocation, pointerToGeo, mercatorToGeo, MAX_LAT } from './coordinates.js';
 import { createStore, START_LOCATION } from './state.js';
 import { canUseBrowserFullscreen, enterBrowserFullscreen } from './fullscreen.js';
-import { DATASETS, sampleDataset, createSelectionGate } from './datasets.js';
+import { DATASETS, UNAVAILABLE_DATASETS, registerDataset, sampleDataset, createSelectionGate } from './datasets.js';
 import { fitMap, mapViewport, toView, fromView } from './map-view.js';
-import { loadSource, getManifest } from './sources.js';
+import { loadSource, getManifest, registerLocalSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
@@ -13,7 +13,9 @@ import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 import { InstantSpeech } from './instant-speech.js';
 import { loadPlaceNames } from './place-names.js';
 import { stepFrame, keyboardCommand } from './timeline.js';
-import { placeText, valueText, dateText, temperatureEstimate } from './narration-text.js';
+import { placeText, valueText, dateText, formattedValue } from './narration-text.js';
+import { featureProfile, sourcePixel, frameLabel, recommendedMapping } from './data-profiles.js';
+import { parseCSV, inferColumns, createGridDataset } from './csv-grid.js';
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
@@ -24,7 +26,59 @@ const selectionGate = createSelectionGate();
 let pendingDataset = 'svs-3912', expanded = false;
 let viewport = mapViewport(1,1,false);
 let placeLookup = null, placeStatus = 'loading', pendingIndex = 0;
-const catalogs = new Map();
+const catalogs = new Map(), mappingSettings = new Map(), variableSettings = new Map();
+let importTable=null, localCounter=0, importSerial=0;
+function populateDatasets(selected=$('dataset').value) {
+  $('dataset').replaceChildren();
+  for(const [id,definition] of Object.entries(DATASETS)) $('dataset').add(new Option(definition.label,id));
+  $('dataset').value=DATASETS[selected]?selected:'svs-3912';
+}
+populateDatasets('svs-3912');
+for(const item of UNAVAILABLE_DATASETS) {
+  const row=document.createElement('li'),link=document.createElement('a');link.href=item.sourcePage;link.textContent=item.title;link.target='_blank';link.rel='noopener';row.append(link,document.createTextNode(': '+item.reason));$('unavailable-datasets').append(row);
+}
+function mappingControls(mapping) {
+  $('mapping-min').value=mapping.min;$('mapping-max').value=mapping.max;$('mapping-curve').value=mapping.curve;$('mapping-amplitude').value=mapping.amplitude;
+}
+function applyMapping(mapping) {
+  mappingSettings.set(store.get().dataset,mapping);store.update({audio:{...store.get().audio,mapping}});mappingControls(mapping);
+}
+$('mapping-apply').addEventListener('click',()=>{
+  const min=Number($('mapping-min').value),max=Number($('mapping-max').value),curve=$('mapping-curve').value;
+  if(!$('mapping-min').value||!$('mapping-max').value||!Number.isFinite(min)||!Number.isFinite(max)||min>=max||(curve==='log'&&min<=0)){$('mapping-status').textContent='Use a finite minimum below the maximum. Logarithmic ranges need a positive minimum.';return;}
+  stopLegend();applyMapping({min,max,curve,amplitude:$('mapping-amplitude').value});$('mapping-status').textContent='Mapping applied. The same audio range is used for every frame; values outside it clip.';
+});
+$('mapping-auto').addEventListener('click',()=>{if(!source)return;applyMapping(recommendedMapping(source.manifest));$('mapping-status').textContent='Automatic metadata/whole-sequence range restored.';});
+$('variable').addEventListener('change',event=>{
+  stopNarration();variableSettings.set(store.get().dataset,event.target.value);store.update({variable:event.target.value});resample();
+});
+$('import-file').addEventListener('change',async event=>{
+  const ticket=++importSerial,file=event.target.files[0];if(!file)return;importTable=null;$('import-load').disabled=true;
+  try {
+    if(file.size>16*1024*1024)throw new Error('Choose a CSV smaller than 16 MB.');
+    const text=await file.text();if(ticket!==importSerial)return;
+    const table=parseCSV(text),inferred=inferColumns(table);importTable=table;
+    for(const [id,key]of [['import-lat','lat'],['import-lon','lon'],['import-value','value'],['import-time','time']]) {
+      $(id).replaceChildren();if(key==='time')$(id).add(new Option('No time column',''));
+      for(const column of table.headers)$(id).add(new Option(column,column));$(id).value=inferred[key];
+    }
+    $('import-title').value=file.name.replace(/\.csv$/i,'');
+    const unitsColumn=table.headers.findIndex(h=>/^units?$/i.test(h));
+    const units=unitsColumn<0?[]:[...new Set(table.rows.map(r=>r[unitsColumn]).filter(Boolean))];$('import-unit').value=units.length===1?units[0]:'';
+    $('import-load').disabled=false;$('import-status').textContent=`${table.rows.length} rows found. Confirm the columns and units, then add the dataset.`;
+  }catch(error){if(ticket===importSerial)$('import-status').textContent=error.message;}
+});
+$('import-load').addEventListener('click',()=>{
+  if(!importTable)return;
+  try {
+    const dataset=createGridDataset(importTable,{lat:$('import-lat').value,lon:$('import-lon').value,value:$('import-value').value,time:$('import-time').value,unit:$('import-unit').value,title:$('import-title').value,noData:$('import-nodata').value});
+    const id=`local-grid-${++localCounter}`;dataset.manifest.id=id;dataset.manifest.limitations='User-supplied regular geographic grid. Units and scientific interpretation are provided by you; the app does not verify them.';
+    registerDataset(id,{label:dataset.manifest.title,feature:dataset.manifest.feature.name,density:'Valid cell coverage',topic:'LOCAL GRID',alt:dataset.manifest.title+' rendered as a geographic scalar grid.'});
+    registerLocalSource(id,dataset);populateDatasets(id);initialize(id,0);
+    $('import-status').textContent=`Added locally: ${dataset.manifest.title}. ${dataset.manifest.frames.length} frame(s); one automatic range across all frames. Your CSV stays in this tab.`;
+  }catch(error){$('import-status').textContent=error.message;}
+});
+
 const narrator = new InstantSpeech({
   onActive: active => audio.setNarrationActive(active),
   onStatus: message => { $('voice-status').textContent = message; $('expanded-voice-status').textContent = message; },
@@ -41,7 +95,7 @@ function readSelection(kind) {
   const state = store.get();
   const text = kind === 'place' ? placeText(placeLookup?.(state.location), state.location, placeStatus)
     : state.validity === 'load-error' ? 'The selected frame could not load. Retry the frame or select another date.'
-    : kind === 'date' ? dateText(source?.frame.timestamp)
+    : kind === 'date' ? source?frameLabel(source.frame,dateText):dateText(null)
     : valueText(state, source?.manifest);
   $('voice-transcript').textContent = text; $('expanded-voice-transcript').textContent = text;
   narrator.speak(text);
@@ -67,9 +121,9 @@ function syncTimeline() {
   const manifest=catalogs.get(pendingDataset),count=manifest?.frames.length??0;
   for(const id of ['timeline','expanded-timeline']) {
     $(id).min=0;$(id).max=Math.max(0,count-1);$(id).value=pendingIndex;$(id).disabled=count<2;
-    $(id).setAttribute('aria-valuetext', count ? `${dateText(manifest.frames[pendingIndex]?.timestamp)} Frame ${pendingIndex+1} of ${count}${source?'':' · loading'}` : 'Loading available dates');
+    $(id).setAttribute('aria-valuetext', count ? `${frameLabel(manifest.frames[pendingIndex],dateText)} Frame ${pendingIndex+1} of ${count}${source?'':' · loading'}` : 'Loading available dates');
   }
-  const label=count ? `${dateText(manifest.frames[pendingIndex]?.timestamp)} · ${pendingIndex+1} of ${count}${source?'':' · loading'}` : 'Loading available dates…';
+  const label=count ? `${frameLabel(manifest.frames[pendingIndex],dateText)} · ${pendingIndex+1} of ${count}${source?'':' · loading'}` : 'Loading available dates…';
   $('timeline-date').textContent=label;$('expanded-timeline-date').textContent=label;
   $('time-previous').disabled=!count||pendingIndex<=0;$('time-next').disabled=!count||pendingIndex>=count-1;
 }
@@ -101,9 +155,9 @@ function surfaceDescription(state) {
   return state.surface === 'unknown' ? 'Surface unavailable' : `${state.surface === 'land' ? 'Land' : 'Water'}${state.nearCoast ? ', near mapped shoreline' : ''}`;
 }
 function sampleDescription(state) {
-  if (!state.sample) return 'Source is not ready.';
-  if (state.sample.value === null) return 'No interpretable visual sample. This is not a scientific zero or verified no-data flag.';
-  return `Image-derived temperature-color position ${Math.round(state.sample.value * 100)} of 100. ${DATASETS[state.dataset].density} ${Math.round(state.sample.density * 100)} percent.`;
+  if(!state.sample)return 'Source is not ready.';
+  if(state.sample.value===null)return state.sample.validity==='outside-coverage'?'Outside this dataset coverage.':'No interpretable sample.';
+  return `${featureProfile(source.manifest).name}: ${formattedValue(state.sample,source.manifest)}. ${DATASETS[state.dataset].density} ${Math.round(state.sample.density*100)} percent.`;
 }
 function render(state) {
   syncTimeline();
@@ -113,33 +167,34 @@ function render(state) {
   $('cursor').style.left = `${point.x * 100}%`;
   $('cursor').style.top = `${point.y * 100}%`;
   const definition = DATASETS[state.dataset];
-  $('feature-label').textContent = definition.feature;
+  const profile=source?featureProfile(source.manifest):null;
+  const category=profile?.categories?.find(c=>c.id===state.variable);
+  $('feature-label').textContent=category?`${category.name} · visual strength`:profile?.name??definition.feature;
   $('density-label').textContent = definition.density;
   $('session-topic').textContent = definition.topic;
-  const timestamp = source?.frame.timestamp;
-  const timeLabel = timestamp ? new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(timestamp))+' UTC' : 'Dataset not ready';
+  const timeLabel=source?frameLabel(source.frame,dateText):'Dataset not ready';
   $('selected-time').textContent = timeLabel; $('session-date').textContent = timeLabel;
-  $('expanded-readout').textContent = `${formatLocation(state.location)} · ${state.surface} · ${state.sample?.value != null ? Math.round(state.sample.value*100)+'/100 visual' : 'No visual sample'}`;
+  $('expanded-readout').textContent=`${formatLocation(state.location)} · ${state.surface} · ${source?formattedValue(state.sample,source.manifest):'Loading data'}`;
   $('expanded-audio').textContent = state.audio.enabled ? 'Pause audio' : 'Start audio';
   $('location').textContent = formatLocation(state.location);
   const namedPlace=placeLookup?.(state.location);
   $('place-name').textContent=namedPlace?.name ?? (placeStatus==='loading'?'Loading place names…':placeStatus==='error'?'Place names unavailable':'No mapped place name');
-  const temperature=temperatureEstimate(state.sample,source?.manifest);
-  $('temperature-estimate').textContent=temperature===null?'—':`≈ ${temperature} °C`;
+  $('mapping-unit').textContent=source?.manifest.valueScale?.unit??'source value units';
   // Do not replace a user's partially typed coordinate while editing the form.
   if (document.activeElement !== $('latitude')) $('latitude').value = state.location.lat.toFixed(2);
   if (document.activeElement !== $('longitude')) $('longitude').value = state.location.lon.toFixed(2);
-  const pixel = source ? geoToSource(state.location.lon, state.location.lat, source.manifest.width, source.manifest.height) : null;
+  const pixel=source?sourcePixel(source.manifest,state.location):null;
   $('pixel').textContent = pixel ? `Source pixel ${pixel.x}, ${pixel.y}` : 'Source pixels unavailable';
   const sample = state.sample;
   const mapped = mapAudio(sample, state.audio);
-  $('feature').replaceChildren(document.createTextNode(sample?.value != null ? String(Math.round(sample.value * 100)) : '—'));
-  const unit = document.createElement('small'); unit.textContent = ' / 100'; $('feature').append(unit);
+  $('feature').textContent=source?formattedValue(sample,source.manifest):'—';
   $('palette-marker').hidden = sample?.value == null;
   $('palette-marker').style.left = `${(sample?.value ?? 0) * 100}%`;
-  $('density').textContent = sample ? `${Math.round(sample.density * 100)}% · ${sample.matchedPixels}/${sample.totalPixels} pixels` : '—';
+  $('density').textContent = sample ? `${Math.round(sample.density * 100)}% · ${sample.matchedPixels}/${sample.totalPixels} ${profile?.method==='grid'?'cells':'pixels'}` : '—';
   $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz`;
-  $('sample-note').textContent = sample?.value != null ? 'Mean source-palette position · image-derived' : source ? 'No interpretable visual sample' : 'Waiting for the NASA frame';
+  $('sample-note').textContent=sample?.value!=null?(profile?.estimate===false?'Neighborhood mean · source grid units':'Image-derived visual estimate'):sample?.validity==='outside-coverage'?'Outside dataset coverage':source?'No interpretable sample':'Waiting for the selected frame';
+  const extent=source?.manifest.geo?.extent;
+  $('dataset-center').hidden=!extent||(extent[2]-extent[0]>=359.999&&extent[3]-extent[1]>=169);
   $('surface').textContent = surfaceDescription(state);
   $('surface').dataset.surface = state.surface;
   $('navigation-cue').textContent = state.lastCue;
@@ -156,7 +211,7 @@ function render(state) {
 }
 store.subscribe(render);
 function resample(location = store.get().location, extra = {}) {
-  const sample = source ? sampleDataset(source, location, store.get().radius, sampleNeighborhood) : null;
+  const sample = source ? sampleDataset(source, location, store.get().radius, sampleNeighborhood, {variable:extra.variable??store.get().variable}) : null;
   const surface = geography?.mask.classify(location) ?? { surface: 'unknown', nearCoast: false };
   return store.update({ ...extra, location, sample, validity: sample?.validity ?? 'loading', surface: surface.surface, nearCoast: surface.nearCoast });
 }
@@ -241,6 +296,7 @@ function leaveMap(event) {
 }
 $('map').addEventListener('pointerleave', leaveMap);
 $('map').addEventListener('pointercancel', leaveMap);
+$('dataset-center').addEventListener('click',()=>{const e=source?.manifest.geo?.extent;if(e)select({lon:(e[0]+e[2])/2,lat:Math.max(-MAX_LAT,Math.min(MAX_LAT,(e[1]+e[3])/2))},true);});
 $('reset').addEventListener('click', () => select({ ...START_LOCATION }, true));
 $('step').addEventListener('change', event => store.update({ spatialStep: Number(event.target.value) }));
 for (const button of document.querySelectorAll('[data-direction]')) button.addEventListener('click', () => select(moveLocation(store.get().location, button.dataset.direction, store.get().spatialStep), true, 'keyboard'));
@@ -334,7 +390,7 @@ async function initialize(id = pendingDataset, index = pendingIndex) {
   active = false; stopLegend(); audio.cancelTones(); audio.fade(); source = null;
   store.update({sample:null,validity:'loading'});
   $('retry').hidden = true; $('map').setAttribute('aria-busy', 'true');
-  $('load-message').hidden = false; $('load-message').textContent = 'Loading NASA dataset…';
+  $('load-message').hidden = false; $('load-message').textContent = 'Loading selected frame…';
   for (const b of document.querySelectorAll('[data-legend]')) b.disabled = true;
   try {
     const manifest = await getManifest(id);
@@ -343,20 +399,28 @@ async function initialize(id = pendingDataset, index = pendingIndex) {
     const candidate = await loadSource(id,index);
     if (!selectionGate.current(ticket)) return;
     source = candidate; $('frame').src = source.frame.display; $('frame').alt = DATASETS[id].alt;
-    $('source-link').href = source.manifest.sourcePage; $('credit-text').textContent = source.manifest.credit;
-    $('manifest-link').href = DATASETS[id].manifest;
-    $('original-frame-link').href = source.frame.original;
-    $('asset-kind').textContent = `Full-resolution NASA rendered frame · ${source.manifest.width} × ${source.manifest.height} · image-derived values`;
-    $('provenance-note').textContent = id === 'svs-5147' ? 'The NASA/GMAO logo and timestamp are embedded in NASA’s original 2048 × 1024 animation frame. This is not the thumbnail, and it is not a raw model data grid. Logo/date regions are excluded from sampling.' : 'This full-resolution ocean frame is a rendered scientific visualization, not a raw model grid.';
-    $('provenance-link').hidden = id !== 'svs-5147';
-    $('source-legend').src = source.manifest.legend.local;
-    $('source-legend').alt = id === 'svs-5147' ? 'NASA near-surface temperature colorbar, minus 40 to plus 40 degrees Celsius. Application values are visual estimates.' : 'NASA sea surface temperature source colorbar, 0 to 32 degrees Celsius. Application values are visual estimates.';
-    $('dataset-description').textContent = `${source.manifest.title}. ${source.manifest.representedInterval} ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
-    $('matching-description').textContent = source.manifest.matching === 'rgb' ? 'This non-monotonic temperature palette is matched in literal RGB space, not hue. Terrain shading and repeated colors make values approximate. The Celsius readout is a whole-degree image estimate, not a raw model-grid measurement. Annotation rectangles are masked. Coverage is the fraction of neighborhood pixels matching the source legend.' : 'Ocean traces use chromatic source-palette matching. Mean visual palette position controls pitch; trace coverage controls amplitude. These are image-derived features, not measured temperature or current speed.';
-    $('palette-track').style.background = source.manifest.matching === 'rgb' ? `linear-gradient(90deg,${source.palette.map(c=>'rgb('+c.join(',')+')').join(',')})` : '';
+    const definition=DATASETS[id],profile=featureProfile(source.manifest);
+    $('source-link').hidden=!manifest.sourcePage;$('source-link').href=manifest.sourcePage||'#';$('credit-text').textContent=manifest.credit;
+    $('manifest-link').hidden=!definition.manifest;if(definition.manifest)$('manifest-link').href=definition.manifest;
+    $('original-frame-link').hidden=!source.frame.original;if(source.frame.original)$('original-frame-link').href=source.frame.original;
+    $('asset-kind').textContent=`${profile.method==='grid'?'Numeric grid':'Rendered visualization'} · ${manifest.width} × ${manifest.height}`;
+    $('provenance-note').textContent=manifest.provenanceNote??'Sampling uses the source geometry and metadata defined for this dataset.';
+    $('provenance-link').hidden=!manifest.provenanceUrl;if(manifest.provenanceUrl)$('provenance-link').href=manifest.provenanceUrl;
+    $('source-legend').hidden=!manifest.legend?.local;if(manifest.legend?.local){$('source-legend').src=manifest.legend.local;$('source-legend').alt=manifest.legend.meaning??'Source legend';}
+    $('dataset-description').textContent=[manifest.title,manifest.representedInterval,manifest.limitations].filter(Boolean).join('. ');
+    $('matching-description').textContent=profile.description??manifest.legend?.meaning??'Image brightness or selected color strength is a visual feature, not a physical concentration.';
+    const rgb=profile.matching!=='chromatic'&&source.palette?.length?source.palette:null;
+    $('palette-track').style.background=rgb?`linear-gradient(90deg,${rgb.map(c=>'rgb('+c.join(',')+')').join(',')})`:'linear-gradient(90deg,rgb(30,60,110),rgb(250,235,40))';
+    $('scale-low').textContent=String(manifest.valueScale?.min??0);$('scale-high').textContent=String(manifest.valueScale?.max??1);
+    const variables=profile.categories??[{id:'value',name:profile.name}];
+    $('variable').replaceChildren();for(const variable of variables)$('variable').add(new Option(variable.name,variable.id));
+    const variable=variableSettings.get(id)??variables[0].id;$('variable').value=variable;
+    const mapping=mappingSettings.get(id)??recommendedMapping(manifest);mappingControls(mapping);
+    $('mapping-status').textContent='Audio range stays fixed across the sequence. Adjust it below or restore automatic mapping.';
+    $('mapping-amplitude').querySelector('[value="intensity"]').disabled=profile.method==='grid';
     $('load-message').hidden = true; $('map').setAttribute('aria-busy','false');
     active = store.get().audio.enabled; surfaceTracker?.reset(store.get().location);
-    resample(store.get().location,{dataset:id,variable:source.manifest.variable??'temperature-color',timeIndex:index,timestamp:source.frame.timestamp});
+    resample(store.get().location,{dataset:id,variable,timeIndex:index,timestamp:source.frame.timestamp,audio:{...store.get().audio,mapping}});
     for (const b of document.querySelectorAll('[data-legend]')) b.disabled = !audioSupported;
     announce(`${source.manifest.title} ready. ${sampleDescription(store.get())}`,true);
     if (!geography && store.get().geographyStatus !== 'loading') await initializeGeography();
@@ -364,7 +428,7 @@ async function initialize(id = pendingDataset, index = pendingIndex) {
     if (!selectionGate.current(ticket)) return;
     source = null; store.update({validity:'load-error',sample:null});
     $('map').setAttribute('aria-busy','false'); $('load-message').hidden=false;
-    $('load-message').textContent='Selected dataset could not load. Retry or choose another dataset.';
+    $('load-message').textContent='Selected frame could not load. Retry, change time or choose another dataset.';
     $('retry').hidden=false; announce($('load-message').textContent,true); console.error(error);
   }
 }
@@ -373,9 +437,9 @@ $('dataset').addEventListener('change',event=>initialize(event.target.value,0));
 for(const [id,location] of [['land-test',{lon:15,lat:23}],['water-test',{lon:-45,lat:30}]]) {
  $(id).addEventListener('click',()=>{
   select(location,true);
-  if(pendingDataset!=='svs-5147'){$('dataset').value='svs-5147';initialize('svs-5147',0);}
  });
 }
+$('city-test').addEventListener('click',()=>select({lon:2.35,lat:48.86},true));
 $('retry-geography').addEventListener('click', initializeGeography);
 function pointerLocation(event){
  const local = pointerToGeo(event.clientX,event.clientY,$('map').getBoundingClientRect());

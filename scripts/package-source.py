@@ -2,9 +2,9 @@
 from pathlib import Path
 import zipfile
 root=Path(__file__).resolve().parents[1]
-output=root/'public/downloads/earth-jukebox-source.zip'
-output.parent.mkdir(exist_ok=True)
-excluded={'node_modules','.git','.openai','dist','.local','downloads','__pycache__'}
+output=root/'work/earth-jukebox-source.zip'
+output.parent.mkdir(parents=True,exist_ok=True)
+excluded={'node_modules','.git','.openai','dist','.local','downloads','work','__pycache__'}
 with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(root.rglob('*')):
         relative=path.relative_to(root)

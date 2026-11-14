@@ -1,0 +1,104 @@
+{
+  "id": "lightning",
+  "title": "ISS LIS lightning \u00b7 flat texture",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5011/",
+  "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+  "width": 2048,
+  "height": 1024,
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "authoritativeCRS": null,
+    "validation": "Empirical full-image world alignment, not embedded georeferencing; see docs/additional-datasets.json."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "width": 1024,
+    "height": 1024,
+    "latitudeLimit": 85.0511287798066,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "frames": [
+    {
+      "timestamp": null,
+      "timeLabel": "Animation frame 420 \u00b7 exact date unverified",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005011/iss_lightning_sos_yearly_07312023_2048p60.mp4",
+      "originalFrame": 420,
+      "nativeDimensions": [
+        4096,
+        2048
+      ],
+      "local": "./frames/extra-lightning-420.webp",
+      "display": "./frames/extra-lightning-420-mercator.webp",
+      "localSha256": "4c780e6398c0dc7e62e558e559ce8cf6febd25d8643a613e5c3ffa07948e1f96",
+      "displaySha256": "bce854589a7263d01a1756974de24bf4490df19458ea6b270370a3b8225f9373"
+    },
+    {
+      "timestamp": null,
+      "timeLabel": "Animation frame 600 \u00b7 exact date unverified",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005011/iss_lightning_sos_yearly_07312023_2048p60.mp4",
+      "originalFrame": 600,
+      "nativeDimensions": [
+        4096,
+        2048
+      ],
+      "local": "./frames/extra-lightning-600.webp",
+      "display": "./frames/extra-lightning-600-mercator.webp",
+      "localSha256": "285494671809a5f4c1e1402db13778c1fa20d916aede0750204cce6eac7c2fd8",
+      "displaySha256": "d0bf8da99fabe80634d9573b3d8783798499fab69f24a886127c44409bbd72c3"
+    },
+    {
+      "timestamp": null,
+      "timeLabel": "Animation frame 1200 \u00b7 exact date unverified",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005011/iss_lightning_sos_yearly_07312023_2048p60.mp4",
+      "originalFrame": 1200,
+      "nativeDimensions": [
+        4096,
+        2048
+      ],
+      "local": "./frames/extra-lightning-1200.webp",
+      "display": "./frames/extra-lightning-1200-mercator.webp",
+      "localSha256": "263ec224698e393454e0beed3b3b48f5c0cb6174934b73875e904074507c7f9f",
+      "displaySha256": "3e2c59e6b344cfbd29eb29ec948223c8a48cd0693eb0867e6b02ff3afec99a4c"
+    }
+  ],
+  "missingBehavior": "Masked annotation pixels and unmatched feature colors are unavailable. Valid zero brightness remains distinct from missing data.",
+  "feature": {
+    "method": "categories",
+    "kind": "visual",
+    "name": "Lightning-mark brightness",
+    "unit": "percent visual yellow-mark brightness",
+    "estimate": true,
+    "categories": [
+      {
+        "id": "lightning",
+        "name": "Yellow lightning marks",
+        "hue": [
+          40,
+          75
+        ]
+      }
+    ]
+  },
+  "valueScale": {
+    "min": 0,
+    "max": 100,
+    "unit": "percent visual yellow-mark brightness",
+    "symbol": "%",
+    "decimals": 1
+  },
+  "mapping": {
+    "amplitude": "coverage",
+    "curve": "linear"
+  },
+  "description": "Quality-controlled ISS Lightning Imaging Sensor visualization, March 2017\u2013July 2023, with a ten-day roving window. Yellow-mark brightness and neighborhood coverage are visual features, not event counts or flash rate.",
+  "provenanceNote": "Extracted from the official 4096 \u00d7 2048 Science On a Sphere equirectangular texture movie, not the rotating globe preview; downsampled to 2048 \u00d7 1024.",
+  "representedInterval": "Source collection March 2017\u2013July 2023, displayed with a ten-day moving window. Exact scientific end date of each extracted animation frame is unverified.",
+  "limitations": "An unmarked region is only low visual mark coverage, not proof of zero flashes or satellite coverage. No per-frame dates are fabricated: the page\u2019s labels.txt ends with an inconsistent 2003 date, and its mapping to this movie is unverified. Animation frame numbers establish ordering only. Grey guides and terrain are excluded by yellow-hue matching; marks are composited visual symbols and cannot recover lightning counts."
+}

@@ -1,0 +1,113 @@
+{
+  "id": "air-5154",
+  "title": "GEOS-FP Nitrogen oxides",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5154/",
+  "credit": "NASA\u2019s Global Modeling and Assimilation Office; visualization Joseph V. Ardizzone (NASA/GSFC)",
+  "width": 2048,
+  "height": 1024,
+  "geo": {
+    "projection": "equirectangular",
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "authoritativeCRS": null,
+    "validation": "Empirical full-image world alignment, not embedded georeferencing; see docs/additional-datasets.json."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "width": 1024,
+    "height": 1024,
+    "latitudeLimit": 85.0511287798066,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "frames": [
+    {
+      "timestamp": "2026-10-29T09:00:00Z",
+      "timeLabel": "29 Oct 2026 \u00b7 09:00 UTC",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005154/frames/2048x1024_2x1_12p/MC04_stage4_GMAO_NO2_2048x1024_en-hwtool/00000001.png",
+      "originalSha256": "e0f8e52a0d669d8d3a4b119800b392e33b2c8dc6adab517c73d338400f5e280e",
+      "local": "./frames/extra-air-5154.webp",
+      "display": "./frames/extra-air-5154-mercator.webp",
+      "localSha256": "c77d59f9464a28d66fc4486c460b40b0b83d2b831de7289a2a92fbd428d7803b",
+      "displaySha256": "8bed3f41fb76c7c06cc2b70df4382f2637e635b81a1b784f38e1706a07ab8b58"
+    }
+  ],
+  "missingBehavior": "Masked annotation pixels and unmatched feature colors are unavailable. Valid zero brightness remains distinct from missing data.",
+  "feature": {
+    "method": "palette",
+    "matching": "rgb",
+    "kind": "quantitative",
+    "name": "Nitrogen oxides",
+    "unit": "parts per billion by volume",
+    "paletteUrl": "./data/air-5154-palette.json",
+    "estimate": true,
+    "background": {
+      "maxChroma": 12,
+      "maxBrightness": 235
+    }
+  },
+  "matching": "rgb",
+  "paletteUrl": "./data/air-5154-palette.json",
+  "valueScale": {
+    "min": 0.001,
+    "max": 10,
+    "unit": "parts per billion by volume",
+    "symbol": "ppbv",
+    "decimals": 3,
+    "interpolation": "log",
+    "anchors": [
+      {
+        "position": 0.0,
+        "value": 0.001
+      },
+      {
+        "position": 0.2815934065934066,
+        "value": 0.01
+      },
+      {
+        "position": 0.5673076923076923,
+        "value": 0.1
+      },
+      {
+        "position": 0.7815934065934066,
+        "value": 1
+      },
+      {
+        "position": 1.0,
+        "value": 10
+      }
+    ],
+    "method": "Interpolation between visually transcribed labeled source ticks. Log interpolation is used between PM2.5/NOx anchors; CO uses nonuniform piecewise linear anchors. Values are estimates from rendered colors."
+  },
+  "masks": [
+    [
+      0,
+      0,
+      350,
+      85
+    ],
+    [
+      0,
+      930,
+      520,
+      1024
+    ]
+  ],
+  "legend": {
+    "local": "./frames/extra-air-5154-legend.png",
+    "original": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005154/NOx_colorbar_plain.png",
+    "meaning": "Nitrogen oxides source colorbar; labeled ticks and nonuniform spacing are retained in valueScale.anchors."
+  },
+  "mapping": {
+    "amplitude": "value",
+    "curve": "log"
+  },
+  "provenanceNote": "Full-resolution 2048 \u00d7 1024 GEOS-FP rendered frame. Logo/date overlays are masked. The related SVS 5533 composite interleaves pollutants in strips and is not used as a single global scalar.",
+  "description": "Frozen full-map GEOS-FP Nitrogen oxides layer, linked from the supplied Air Quality Model Runs resource. It is a separate GEOS-FP product, not the GEOS-CF striped composite.",
+  "representedInterval": "29 Oct 2026 05:00 EDT transcribed from the embedded frame label equals 09:00 UTC. Scientific averaging interval unverified; not live air quality.",
+  "limitations": "Rendered image colors and terrain/background compositing limit quantitative accuracy. Whole/decimal values are approximate colorbar estimates, not raw model-grid measurements. The unlabeled darkest tail beyond the last 10 ppbv tick is clipped to the last verified anchor; NOx label is retained rather than inferring NO2."
+}

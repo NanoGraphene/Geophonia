@@ -1,0 +1,516 @@
+{
+  "version": 1,
+  "originals": [
+    {
+      "name": "air-5151.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005151/frames/2048x1024_2x1_12p/MC01_stage4_GMAO_pm25_2048x1024_en-hwtool/00000001.png",
+      "sha256": "8298865f180919001e1ce03e9b4603739adae44d1f1140aea0c93c8c0e10e511",
+      "bytes": 6311956
+    },
+    {
+      "name": "air-5151-legend.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005151/PM2.5_colorbar_plain.png",
+      "sha256": "0747c16e8c8dce0c5f1ff955e55767c9bea12b3aff6ff983bfba40a46f17514a",
+      "bytes": 5402
+    },
+    {
+      "name": "air-5152.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005152/frames/2048x1024_2x1_12p/MC02_stage4_GMAO_O3_2048x1024_en-hwtool/00000001.png",
+      "sha256": "a012d4a903bf34dbd9ad285921cd434f4f2059d30cc332c304e761071c52bd2e",
+      "bytes": 6311956
+    },
+    {
+      "name": "air-5152-legend.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005152/O3_colorbar_plain.png",
+      "sha256": "721a48277293271245cdedae1b88695ab971eaa5f4b9aa6bc7eebc60dfec7413",
+      "bytes": 4451
+    },
+    {
+      "name": "air-5153.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005153/frames/2048x1024_2x1_12p/MC03_stage4_GMAO_CO_2048x1024_en-hwtool/00000001.png",
+      "sha256": "f2130d956e18b584e7acef9a1646bbd2965f690c556327528e21105ab86b672c",
+      "bytes": 6311956
+    },
+    {
+      "name": "air-5153-legend.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005153/CO_colorbar_plain.png",
+      "sha256": "1276d434479aac89389ebec4f83fcaddb8aa10fdc9c7d7cb2b14dc7c466c402a",
+      "bytes": 4537
+    },
+    {
+      "name": "air-5154.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005154/frames/2048x1024_2x1_12p/MC04_stage4_GMAO_NO2_2048x1024_en-hwtool/00000001.png",
+      "sha256": "e0f8e52a0d669d8d3a4b119800b392e33b2c8dc6adab517c73d338400f5e280e",
+      "bytes": 6311956
+    },
+    {
+      "name": "air-5154-legend.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005154/NOx_colorbar_plain.png",
+      "sha256": "5de4896471babd79e37faf0e02eb6dfe8071708577c1d2a0c626535c7e656c3d",
+      "bytes": 4355
+    },
+    {
+      "name": "aerosols.png",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005600/a005669/Aerosols_2025-08-19T20_00_00_1920x1080.png",
+      "sha256": "0c6a8f6c46fb52a2f9a636bbd804fc6e5e23454dcb2f0d3fe04c653c772e8a7a",
+      "bytes": 2768951
+    },
+    {
+      "name": "nightlights.mp4",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005200/a005276/nightlights_flat_series_stills_only_lights_2160p3_h265.mp4",
+      "sha256": "0f25c82a89b731b24f4b3552f42aedba7aefdfcfc8854f6493935e579c79a04c",
+      "bytes": 1066433
+    },
+    {
+      "name": "lightning.mp4",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005011/iss_lightning_sos_yearly_07312023_2048p60.mp4",
+      "sha256": "c5cd7993dc683f45344abdcd2c5021e7d8d3bef8734a7c4f178acf2af493bc67",
+      "bytes": 350207237
+    }
+  ],
+  "derivedAssets": [
+    {
+      "path": "public/frames/extra-aerosols-mercator.webp",
+      "sha256": "5d20c516c292df5a17b8f473bc89ed5b11a44f909d2bb76dc8e4932f0eb8e7f0",
+      "bytes": 896808
+    },
+    {
+      "path": "public/frames/extra-aerosols.webp",
+      "sha256": "4c033d67e09bda0df743963eab7e262503ec1347985e198c1e0a60b448f662ae",
+      "bytes": 2185244
+    },
+    {
+      "path": "public/frames/extra-air-5151-legend.png",
+      "sha256": "34065370fde85ccc06e93e2819642ba2eecc2e5696d5c108fbb23062dbad6320",
+      "bytes": 5381
+    },
+    {
+      "path": "public/frames/extra-air-5151-mercator.webp",
+      "sha256": "dc65468435e2f9fe19b99e332a0f3fa342cb6074afdb6e0cc8a45e5e7876cff5",
+      "bytes": 623574
+    },
+    {
+      "path": "public/frames/extra-air-5151.webp",
+      "sha256": "cdd6f5b10d79837b8c117eaf1be5a46ba8cb346c9f2066bc2745e96cba4e82f8",
+      "bytes": 1116220
+    },
+    {
+      "path": "public/frames/extra-air-5152-legend.png",
+      "sha256": "20c0e3ca5163859ccb06e5e04c4729916e19d41b64e2002686346a67a1da2498",
+      "bytes": 4430
+    },
+    {
+      "path": "public/frames/extra-air-5152-mercator.webp",
+      "sha256": "fc7865d19d93a103a5118369f23b3fc95181ba36ed20c4ac52e5902c08521e37",
+      "bytes": 464180
+    },
+    {
+      "path": "public/frames/extra-air-5152.webp",
+      "sha256": "520fdbd7aea1464ff16e4746a6f5361a6664c514bdb504e2172580c40c4238b6",
+      "bytes": 843872
+    },
+    {
+      "path": "public/frames/extra-air-5153-legend.png",
+      "sha256": "2e5613057fba3bbb77bc27eb7666089ec957dbfbc65a8be91974c002cc2a0a91",
+      "bytes": 4516
+    },
+    {
+      "path": "public/frames/extra-air-5153-mercator.webp",
+      "sha256": "bd0de9bfca02c2888a46ba5d3431aec9eee885c1c8e10ee127169797b86a10fc",
+      "bytes": 501330
+    },
+    {
+      "path": "public/frames/extra-air-5153.webp",
+      "sha256": "88bb63fde32b2a6493692ef926228376a291af4338474e1e99f6936790ff0e70",
+      "bytes": 925260
+    },
+    {
+      "path": "public/frames/extra-air-5154-legend.png",
+      "sha256": "236133ac77acb81e8fcedc6ee45ca2a12926158007ad1f57a821db0f6169e542",
+      "bytes": 4334
+    },
+    {
+      "path": "public/frames/extra-air-5154-mercator.webp",
+      "sha256": "8bed3f41fb76c7c06cc2b70df4382f2637e635b81a1b784f38e1706a07ab8b58",
+      "bytes": 640858
+    },
+    {
+      "path": "public/frames/extra-air-5154.webp",
+      "sha256": "c77d59f9464a28d66fc4486c460b40b0b83d2b831de7289a2a92fbd428d7803b",
+      "bytes": 1172976
+    },
+    {
+      "path": "public/frames/extra-lightning-1200-mercator.webp",
+      "sha256": "3e2c59e6b344cfbd29eb29ec948223c8a48cd0693eb0867e6b02ff3afec99a4c",
+      "bytes": 307084
+    },
+    {
+      "path": "public/frames/extra-lightning-1200.webp",
+      "sha256": "263ec224698e393454e0beed3b3b48f5c0cb6174934b73875e904074507c7f9f",
+      "bytes": 815102
+    },
+    {
+      "path": "public/frames/extra-lightning-420-mercator.webp",
+      "sha256": "bce854589a7263d01a1756974de24bf4490df19458ea6b270370a3b8225f9373",
+      "bytes": 243640
+    },
+    {
+      "path": "public/frames/extra-lightning-420.webp",
+      "sha256": "4c780e6398c0dc7e62e558e559ce8cf6febd25d8643a613e5c3ffa07948e1f96",
+      "bytes": 619782
+    },
+    {
+      "path": "public/frames/extra-lightning-600-mercator.webp",
+      "sha256": "d0bf8da99fabe80634d9573b3d8783798499fab69f24a886127c44409bbd72c3",
+      "bytes": 310268
+    },
+    {
+      "path": "public/frames/extra-lightning-600.webp",
+      "sha256": "285494671809a5f4c1e1402db13778c1fa20d916aede0750204cce6eac7c2fd8",
+      "bytes": 822718
+    },
+    {
+      "path": "public/frames/extra-nightlights-2012-mercator.webp",
+      "sha256": "d072c5c01c4f8ca931b9b8ee0f5c1fe6ddb6960c396782a8c76122976a2e9762",
+      "bytes": 75436
+    },
+    {
+      "path": "public/frames/extra-nightlights-2012.webp",
+      "sha256": "b7c3a2651765aa5ceebac7e8961e45a2ec6b991c0805dd614b9c057f5c57827a",
+      "bytes": 235114
+    },
+    {
+      "path": "public/frames/extra-nightlights-2018-mercator.webp",
+      "sha256": "809270829a23a97a67f266c3be70e3c33109fc398032e0f71f27f99c97115298",
+      "bytes": 80146
+    },
+    {
+      "path": "public/frames/extra-nightlights-2018.webp",
+      "sha256": "ab80e08b0651bb0209c6b111e4b29b9071ba8769ee804c4edd8a523b7a73d895",
+      "bytes": 253516
+    },
+    {
+      "path": "public/frames/extra-nightlights-2023-mercator.webp",
+      "sha256": "cf9d7b0cc1a47726982b99037c614e3cb04af65720500a9400d4c76a2bdfbc58",
+      "bytes": 84068
+    },
+    {
+      "path": "public/frames/extra-nightlights-2023.webp",
+      "sha256": "1f2f4a742503801525552a0e83cb4fc4f619e7c208a6db516966ebba031a322b",
+      "bytes": 268008
+    },
+    {
+      "path": "public/data/air-5151-palette.json",
+      "sha256": "26f7299ad67b9f427349f888e852da9407411813492c168933468f4a86f7490b",
+      "bytes": 4778
+    },
+    {
+      "path": "public/data/air-5152-palette.json",
+      "sha256": "2ff4561846fdb423e6966dc9672009f2071a05fdfc590a196b3ca2e438d5157c",
+      "bytes": 5362
+    },
+    {
+      "path": "public/data/air-5153-palette.json",
+      "sha256": "2203753869a1c146d734356c656e877195c386a6b9d3409e775fefe4ec87f418",
+      "bytes": 4948
+    },
+    {
+      "path": "public/data/air-5154-palette.json",
+      "sha256": "7c1dfb2feb7381dc2dfc7cd7955aa6c0231606d13cdb5b5958eeb6a0e666e793",
+      "bytes": 4620
+    }
+  ],
+  "alignment": {
+    "method": "Empirical full-world equirectangular alignment, independently of rendered aspect ratio. Mercator output resamples the entire source extent. Source files contain no authoritative embedded CRS.",
+    "nightLightsCheckpoints": [
+      {
+        "name": "Paris",
+        "location": {
+          "lon": 2.35,
+          "lat": 48.86
+        },
+        "sourcePixel": [
+          1037,
+          263
+        ],
+        "rgb": [
+          255,
+          255,
+          231
+        ],
+        "patchMaxChannel": 255,
+        "patchMeanChannel": 113.97333333333333,
+        "interpretation": "Expected city light cluster is bright at the full-image equirectangular coordinate."
+      },
+      {
+        "name": "New York",
+        "location": {
+          "lon": -74.006,
+          "lat": 40.71
+        },
+        "sourcePixel": [
+          602,
+          315
+        ],
+        "rgb": [
+          247,
+          241,
+          209
+        ],
+        "patchMaxChannel": 255,
+        "patchMeanChannel": 153.88,
+        "interpretation": "Expected city light cluster is bright at the full-image equirectangular coordinate."
+      },
+      {
+        "name": "Tokyo",
+        "location": {
+          "lon": 139.69,
+          "lat": 35.68
+        },
+        "sourcePixel": [
+          1818,
+          347
+        ],
+        "rgb": [
+          252,
+          252,
+          217
+        ],
+        "patchMaxChannel": 255,
+        "patchMeanChannel": 143.70666666666668,
+        "interpretation": "Expected city light cluster is bright at the full-image equirectangular coordinate."
+      },
+      {
+        "name": "Sydney",
+        "location": {
+          "lon": 151.2,
+          "lat": -33.86
+        },
+        "sourcePixel": [
+          1884,
+          792
+        ],
+        "rgb": [
+          207,
+          205,
+          175
+        ],
+        "patchMaxChannel": 245,
+        "patchMeanChannel": 67.13333333333334,
+        "interpretation": "Expected city light cluster is bright at the full-image equirectangular coordinate."
+      },
+      {
+        "name": "Cairo",
+        "location": {
+          "lon": 31.235,
+          "lat": 30.044
+        },
+        "sourcePixel": [
+          1201,
+          383
+        ],
+        "rgb": [
+          255,
+          255,
+          229
+        ],
+        "patchMaxChannel": 255,
+        "patchMeanChannel": 143.16,
+        "interpretation": "Expected city light cluster is bright at the full-image equirectangular coordinate."
+      },
+      {
+        "name": "Delhi",
+        "location": {
+          "lon": 77.21,
+          "lat": 28.61
+        },
+        "sourcePixel": [
+          1463,
+          392
+        ],
+        "rgb": [
+          255,
+          255,
+          228
+        ],
+        "patchMaxChannel": 255,
+        "patchMeanChannel": 132.98666666666668,
+        "interpretation": "Expected city light cluster is bright at the full-image equirectangular coordinate."
+      }
+    ],
+    "visualInspection": {
+      "aerosols": [
+        "Greenland at about 42\u00b0 W, 72\u00b0 N",
+        "Madagascar at about 47\u00b0 E, 20\u00b0 S",
+        "Australia and Antarctica coastlines"
+      ],
+      "lightning": [
+        "Mediterranean and African coasts",
+        "Madagascar",
+        "Australia",
+        "Greenland"
+      ],
+      "airQuality": [
+        "Greenland",
+        "west African coast",
+        "South America",
+        "Australia"
+      ]
+    },
+    "limits": "Visual/empirical support, not survey-grade georeferencing. Aerosols obscure coastlines; generalized geographic names/cues remain approximate."
+  },
+  "legendCalibration": {
+    "paletteRow": 50,
+    "airProfiles": {
+      "5151": {
+        "sampleColumns": [
+          74,
+          461
+        ],
+        "ticksPixelValue": [
+          [
+            74,
+            0.4
+          ],
+          [
+            147.5,
+            1.6
+          ],
+          [
+            226.5,
+            6.4
+          ],
+          [
+            305.5,
+            25.6
+          ],
+          [
+            384.5,
+            102.4
+          ],
+          [
+            461,
+            409.6
+          ]
+        ],
+        "interpolation": "log"
+      },
+      "5152": {
+        "sampleColumns": [
+          74,
+          461
+        ],
+        "ticksPixelValue": [
+          [
+            74,
+            5
+          ],
+          [
+            176.5,
+            20
+          ],
+          [
+            319.5,
+            40
+          ],
+          [
+            461,
+            60
+          ]
+        ],
+        "interpolation": "linear"
+      },
+      "5153": {
+        "sampleColumns": [
+          70,
+          463
+        ],
+        "ticksPixelValue": [
+          [
+            70,
+            40
+          ],
+          [
+            188.5,
+            100
+          ],
+          [
+            279.5,
+            130
+          ],
+          [
+            370.5,
+            200
+          ],
+          [
+            463,
+            500
+          ]
+        ],
+        "interpolation": "linear"
+      },
+      "5154": {
+        "sampleColumns": [
+          74,
+          438
+        ],
+        "ticksPixelValue": [
+          [
+            74,
+            0.001
+          ],
+          [
+            176.5,
+            0.01
+          ],
+          [
+            280.5,
+            0.1
+          ],
+          [
+            358.5,
+            1
+          ],
+          [
+            438,
+            10
+          ]
+        ],
+        "interpolation": "log"
+      }
+    },
+    "limits": "Source ticks transcribed visually; tick pixel centers read from white guides. NOx palette ends at the last verified 10 ppbv tick rather than extrapolating the unlabeled darkest tail."
+  },
+  "sourceSelection": {
+    "airQuality": "Uses separate full-map GEOS-FP layers 5151\u20135154 linked from 5533. The striped GEOS-CF composite is excluded from global scalar mapping.",
+    "nightLights": "Flat annual maps from related 5276 are linked by the supplied EIC 5313 source.",
+    "lightning": "Flat SOS texture from 5011; exact per-frame science dates remain unknown."
+  },
+  "excludedSources": [
+    {
+      "id": 5196,
+      "title": "DYAMOND Global Carbon Dioxide",
+      "reason": "Supplied assets show camera-orbit/zoom/tilt 3D globe point clouds; no verified fixed flat-map sampling grid found."
+    },
+    {
+      "id": 4950,
+      "title": "GEDI Forest Height",
+      "reason": "Supplied visualizations use 3D/globe or moving regional views with exaggerated height; no verified flat georeferenced raster found."
+    },
+    {
+      "id": 4960,
+      "title": "Atmospheric River",
+      "reason": "Explicit 3D atmospheric-river camera views; not treated as a flat geographical field."
+    },
+    {
+      "id": 5425,
+      "title": "Perpetual Ocean 2",
+      "reason": "3D globe/camera animations excluded as requested."
+    },
+    {
+      "id": 13786,
+      "title": "Caldwell 73",
+      "reason": "Sonification reference, not an Earth data layer."
+    }
+  ]
+}

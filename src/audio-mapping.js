@@ -4,9 +4,18 @@ export function validatePitchRange(min, max) {
 }
 export function mapAudio(sample, preferences) {
   if (!sample || sample.validity !== 'valid' || sample.value === null || !validatePitchRange(preferences.minHz, preferences.maxHz)) return { frequency: null, gain: 0 };
-  const normalized = clamp(sample.value, 0, 1);
+  const mapping=preferences.mapping;
+  let normalized=clamp(sample.value,0,1);
+  if(mapping) {
+    const {min,max,curve}=mapping,raw=sample.measurement;
+    if(!Number.isFinite(min)||!Number.isFinite(max)||min>=max||!Number.isFinite(raw)||(curve==='log'&&min<=0))return {frequency:null,gain:0};
+    const clipped=clamp(raw,min,max);
+    normalized=curve==='log'?Math.log(clipped/min)/Math.log(max/min):(clipped-min)/(max-min);
+    if(curve==='sqrt')normalized=Math.sqrt(normalized);
+  }
   // Exponential frequency gives uniform perceptual steps along the palette.
   const frequency = preferences.minHz * (preferences.maxHz / preferences.minHz) ** normalized;
-  const gain = .12 * clamp(preferences.volume, 0, 1) * clamp(sample.density, 0, 1);
+  const amplitude=mapping?.amplitude==='value'?normalized:mapping?.amplitude==='intensity'?sample.intensity:sample.density;
+  const gain = .12 * clamp(preferences.volume, 0, 1) * clamp(amplitude??0, 0, 1);
   return { frequency, gain };
 }
