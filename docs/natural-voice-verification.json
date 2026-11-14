@@ -1,0 +1,10 @@
+{
+  "model": "KittenTTS Nano INT8",
+  "voice": "bella",
+  "rate": 24000,
+  "duration": 10,
+  "peak": 0.5410614609718323,
+  "elapsedSeconds": 11.742,
+  "modelRevision": "84781d74e29ee25217551556398b42f80593a813",
+  "runtime": "prebuilt browser SDK with Node/WASM, not browser QA"
+}

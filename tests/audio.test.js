@@ -127,3 +127,9 @@ test('crossing legend auditions a single short impact and silence cancels it',as
  engine.legend('coast-water',prefs);assert.equal(engine.pendingTones.size,1);
  engine.stop();assert.equal(engine.pendingTones.size,0);assert.equal(engine.master.gain.value,0);
 });
+
+test('narration ducks the data bus, including before start, and cannot reopen a muted master',async()=>{
+ const engine=new AudioEngine(()=>new Context());engine.setNarrationActive(true);await engine.start();
+ assert.equal(engine.narrationGain.gain.value,.2);engine.setNarrationActive(false);assert.equal(engine.narrationGain.gain.value,1);
+ engine.stop();engine.setNarrationActive(true);engine.setNarrationActive(false);assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
+});

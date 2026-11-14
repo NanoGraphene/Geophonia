@@ -9,13 +9,15 @@ export class AudioEngine {
   }) {
     this.factory = factory; this.context = null; this.enabled = false;
     this.epoch = 0; this.pendingTones = new Set(); this.lastValidity = null; this.lastVolume = null;
-    this.onInterrupted = () => {};
+    this.onInterrupted = () => {}; this.narrating = false;
   }
   setup() {
     if (this.context) return;
     this.context = this.factory();
     this.master = this.context.createGain(); this.master.gain.value = 0;
-    this.master.connect(this.context.destination);
+    this.narrationGain = this.context.createGain();
+    this.narrationGain.gain.value = this.narrating ? .2 : 1;
+    this.master.connect(this.narrationGain); this.narrationGain.connect(this.context.destination);
     this.level = this.context.createGain(); this.level.gain.value = 0; this.level.connect(this.master);
     this.dataVoice = createSynthVoice(this.context, this.level, 160);
     this.dataVoice.oscillator.start();
@@ -50,6 +52,10 @@ export class AudioEngine {
     }
   }
   cancelLegend() { this.cancelTones('legend'); }
+  setNarrationActive(active) {
+    this.narrating = active;
+    if (this.context) this.smooth(this.narrationGain.gain, active ? .2 : 1, .06);
+  }
   stop() {
     this.epoch++; this.enabled = false; this.lastValidity = null;
     if (!this.context) return;

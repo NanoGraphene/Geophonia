@@ -10,6 +10,8 @@ import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
+import { NaturalVoice } from './natural-voice.js';
+import { locationText, describeCurrent, describeDataset } from './narration-text.js';
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
@@ -19,6 +21,44 @@ const boundaryTracker = new BoundaryTracker();
 const selectionGate = createSelectionGate();
 let pendingDataset = 'svs-3912', expanded = false;
 let viewport = mapViewport(1,1,false);
+const narrator = new NaturalVoice({
+  createWorker: () => new Worker(new URL('./neural/worker.js', document.baseURI)),
+  onActive: active => audio.setNarrationActive(active),
+  onState: (state, message) => {
+    $('voice-status').textContent = message;
+    $('voice-load').disabled = state === 'loading' || narrator.loaded;
+    $('voice-load').textContent = narrator.loaded ? 'Natural voice loaded' : state === 'loading' ? 'Loading natural voice…' : 'Load natural voice';
+    syncVoiceControls();
+  }
+});
+function syncVoiceControls() {
+  const browser = $('voice-engine').value === 'browser';
+  const ready = (browser ? !!globalThis.speechSynthesis : narrator.loaded) && !!source;
+  for (const button of document.querySelectorAll('[data-read]')) button.disabled = !ready;
+  $('voice-load').hidden = browser;
+  $('voice-choice').disabled = browser;
+}
+function stopNarration() {
+  $('voice-sample').pause(); narrator.stop();
+}
+function readSelection(kind) {
+  if (!source) return;
+  $('voice-sample').pause(); stopLegend();
+  const text = kind === 'location' ? `Selected location: ${locationText(store.get().location)}.` : kind === 'dataset' ? describeDataset(source.manifest) : describeCurrent(store.get());
+  $('voice-transcript').textContent = text;
+  narrator.read(text, { engine: $('voice-engine').value, voice: $('voice-choice').value, speed: Number($('voice-speed').value) });
+}
+$('voice-load').addEventListener('click', () => narrator.load(new URL('./runtime/', document.baseURI).href).catch(() => {}));
+$('voice-engine').addEventListener('change', () => {
+  stopNarration(); syncVoiceControls();
+  $('voice-status').textContent = $('voice-engine').value === 'browser' ? 'Browser fallback selected. Voice quality depends on your device.' : narrator.loaded ? 'Natural voice ready.' : 'Load the natural voice when ready.';
+});
+for (const button of document.querySelectorAll('[data-read]')) button.addEventListener('click', () => readSelection(button.dataset.read));
+$('voice-stop').addEventListener('click', stopNarration);
+for (const id of ['voice-choice', 'voice-speed']) $(id).addEventListener('change', stopNarration);
+$('voice-sample').addEventListener('play', () => { narrator.stop(); audio.setNarrationActive(true); });
+$('voice-sample').volume = store.get().audio.volume;
+for (const event of ['pause', 'ended', 'error']) $('voice-sample').addEventListener(event, () => audio.setNarrationActive(false));
 function announce(text, immediate = false) {
   clearTimeout(spatialTimer);
   spatialTimer = setTimeout(() => { $('status').textContent = text; }, immediate ? 0 : 450);
@@ -32,6 +72,7 @@ function sampleDescription(state) {
   return `Image-derived temperature-color position ${Math.round(state.sample.value * 100)} of 100. ${DATASETS[state.dataset].density} ${Math.round(state.sample.density * 100)} percent.`;
 }
 function render(state) {
+  syncVoiceControls();
   const projected = geoToMercator(state.location.lon, state.location.lat);
   if(projected.y < viewport.top || projected.y > viewport.bottom) layoutMap();
   const point = toView(projected, viewport);
@@ -85,6 +126,7 @@ function stopLegend() {
   clearTimeout(legendTimer); audio.cancelLegend(); legendPlaying = false; $('legend-status').textContent = '';
 }
 function select(location, immediate = false, mode = 'relocate') {
+  stopNarration();
   if (legendPlaying) stopLegend();
   active = true;
   const previous=store.get().location;
@@ -104,6 +146,7 @@ function select(location, immediate = false, mode = 'relocate') {
   announce(`${formatLocation(location)}. ${surfaceDescription(state)}. ${sampleDescription(state)}${cue ? ' ' + cue + '.' : ''}`, immediate);
 }
 function silence(message = 'All application audio is silent.') {
+  stopNarration();
   active = false; starting = false; pointerInside = false; stopLegend(); audio.stop();
   boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
   store.update({ audio: { ...store.get().audio, enabled: false } });
@@ -175,6 +218,7 @@ $('radius').addEventListener('change', event => {
 });
 $('volume').addEventListener('input', event => {
   stopLegend(); const volume = Number(event.target.value) / 100;
+  narrator.setVolume(volume); $('voice-sample').volume = volume;
   $('volume-value').textContent = `${Math.round(volume * 100)}%`;
   store.update({ audio: { ...store.get().audio, volume } });
 });
@@ -247,6 +291,7 @@ async function initializeGeography() {
   } finally { $('retry-geography').disabled = false; }
 }
 async function initialize(id = pendingDataset) {
+  stopNarration();
   pendingDataset = id; const ticket = selectionGate.next();
   active = false; stopLegend(); audio.cancelTones(); audio.fade(); source = null;
   store.update({sample:null,validity:'loading'});

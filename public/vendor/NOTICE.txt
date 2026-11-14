@@ -1,0 +1,10 @@
+KittenTTS Web SDK and KittenTTS Nano INT8 model: KittenML, Apache License 2.0.
+The prebuilt SDK is reproduced without modification from:
+https://github.com/KittenML/KittenTTS-web/tree/c846fe92858f3447f4912226471f5a63983b3f94/examples/html/assets/kittentts-web.js
+Complete corresponding SDK/CEPhonemizer source and build scripts are available at that pinned source URL.
+Bundled ONNX Runtime Web: Microsoft Corporation, MIT License; see ONNXRUNTIME-LICENSE and preserved bundle notices.
+The SDK downloads English pronunciation dictionaries from espeak-ng at commit 59eb19938f12e30881c81d86ce4a7de25414c9f4.
+Dictionary sources and copyright/license notices:
+https://github.com/espeak-ng/espeak-ng/tree/59eb19938f12e30881c81d86ce4a7de25414c9f4/dictsource
+See ESPEAK-LICENSE for the GPL-3.0-or-later license.
+No upstream analytics are enabled by this application. See neural/provenance.json for exact revisions.

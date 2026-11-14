@@ -1,0 +1,13 @@
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+globalThis.require=createRequire(import.meta.url);
+const {KittenTTS}=new Function((await readFile(new URL('../public/vendor/kittentts-web.js',import.meta.url),'utf8'))+';return KittenTTSWeb;')();
+const started=Date.now();
+const model=await KittenTTS.create({model:'nano-int8',analytics:false,storageDirectory:join(tmpdir(),'geophonia-kitten-nano-84781d7'),modelBaseURL:'https://huggingface.co/KittenML/kitten-tts-nano-0.8-int8/resolve/84781d74e29ee25217551556398b42f80593a813',ortNumThreads:1,ortWasmPath:new URL('../public/runtime/',import.meta.url).href},(p,info)=>{if(info?.stage==='complete')console.log('Loaded',info.asset);});
+const result=await model.generate('Explore Earth through sound. The selected location is twenty three degrees north, fifteen degrees east.',{voice:'bella',speed:1});
+await mkdir('public/voice-preview',{recursive:true});await writeFile('public/voice-preview/kitten-bella.wav',result.wavData());
+const peak=result.samples.reduce((m,v)=>Math.max(m,Math.abs(v)),0);if(result.sampleRate!==24000||result.duration<1||!Number.isFinite(peak)||peak===0)throw new Error('Invalid neural model output.');
+const report={model:'KittenTTS Nano INT8',voice:result.voice,rate:result.sampleRate,duration:result.duration,peak,elapsedSeconds:(Date.now()-started)/1000,modelRevision:'84781d74e29ee25217551556398b42f80593a813',runtime:'prebuilt browser SDK with Node/WASM, not browser QA'};
+await writeFile('docs/natural-voice-verification.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));await model.dispose();

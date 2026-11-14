@@ -78,3 +78,9 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Map context-menu gesture selects the clicked location and starts/resumes audio through the same guarded explicit-start flow, in standard and expanded layouts.
 - Already enabled audio stays on; browser context menus elsewhere are unaffected. Loading guard and existing Silence/Escape controls are retained.
 - 60 regression tests, source/label checks and production build passed. Actual browser right-click/autoplay checks remain unverified in this environment.
+
+## Fresh natural voice from stable — 0.4.8
+
+Implemented independently on `natural-tts` from stable `3a74a65`, without merging the experimental TTS branch. Kitten Nano INT8 replaces browser speech as the default narration engine, with an explicit fallback option, eight voices, speed selection, actual preview audio and local worker inference. Readings reflect the current frozen frame and explicitly identify image-derived estimates. Timeline work is not included. Exact model/SDK revisions and verification are recorded in `public/neural/provenance.json` and `docs/natural-voice-verification.json`.
+
+67 automated checks and real Node/WASM inference pass. Browser/listening checks remain pending because browser-control tooling is unavailable.
