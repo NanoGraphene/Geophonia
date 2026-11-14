@@ -57,7 +57,14 @@
     }
   },
   "missingBehavior": "No qualifying colored trace is no interpretable visual sample, not a scientific no-data assertion or zero.",
-  "surfaceClassification": "Not implemented until milestone 4",
+  "surfaceClassification": {
+    "source": "Natural Earth 1:50m land and lakes",
+    "manifest": "./geography/manifest.json",
+    "resolution": "4096\u00d72048 binary geographic cells; 0.087890625 degrees; about 9.8 km at the equator",
+    "meaning": "Land polygons minus lake polygons, with holes and islands preserved. Independent of image colors and country borders.",
+    "alignmentValidation": "docs/geography-validation.json",
+    "uncertainty": "Approximate generalized geometry, not historical 2007 shorelines. Near shoreline means mixed 3\u00d73 cells. Features thinner than this may classify without producing a crossing cue."
+  },
   "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
   "endorsement": "Independent Space Apps 2026 challenge submission. No NASA endorsement.",
   "sampling": {
@@ -76,5 +83,14 @@
     "density": "Qualifying trace pixels divided by total available pixels in the source neighborhood",
     "scientificUnitsReported": false,
     "colorNormalization": "Subtract minimum RGB channel, divide by chroma (max-min); compare to identically normalized source palette."
+  },
+  "navigationCues": {
+    "crossingHysteresis": "New surface cue requires a confident 3\u00d73 cell neighborhood on the new side. Trace every raster cell crossed by each observed Mercator motion segment.",
+    "path": "Pointer follows displayed segment; keyboard takes shortest path across antimeridian. Coordinate jumps/resets set baseline without crossing sounds.",
+    "boundaryZoneCssPixels": 12,
+    "boundaryReleaseCssPixels": 18,
+    "boundaryMeaning": "Interactive map rectangle, not physical screen edges. Corners have priority.",
+    "patterns": "Mono edge and corner patterns; rising coast pair entering land, falling pair entering water. Latest navigation replaces queued cues, with at most two recent crossings.",
+    "surfaceGuide": "Optional fixed 140 Hz reference only when there is no interpretable visual sample; not a data measurement."
   }
 }

@@ -1,0 +1,253 @@
+{
+  "method": "Independent Natural Earth 1:50m land/lakes mask compared with NASA rendered grayscale land. No source CRS metadata; empirical alignment only. Coastline comparison errors are nearest detected edges on four restricted transects, not global positional accuracy.",
+  "agreementAwayFromCoasts": 0.9972681505208367,
+  "comparisonPixelCount": 1523510,
+  "checkpoints": [
+    {
+      "name": "Sahara",
+      "location": {
+        "lon": 15,
+        "lat": 23
+      },
+      "expected": "land",
+      "surface": "land",
+      "matchesExpected": true,
+      "sourceRGB": [
+        46,
+        46,
+        45
+      ]
+    },
+    {
+      "name": "Australia",
+      "location": {
+        "lon": 135,
+        "lat": -25
+      },
+      "expected": "land",
+      "surface": "land",
+      "matchesExpected": true,
+      "sourceRGB": [
+        50,
+        50,
+        49
+      ]
+    },
+    {
+      "name": "Greenland",
+      "location": {
+        "lon": -42,
+        "lat": 72
+      },
+      "expected": "land",
+      "surface": "land",
+      "matchesExpected": true,
+      "sourceRGB": [
+        49,
+        49,
+        50
+      ]
+    },
+    {
+      "name": "South America",
+      "location": {
+        "lon": -60,
+        "lat": -15
+      },
+      "expected": "land",
+      "surface": "land",
+      "matchesExpected": true,
+      "sourceRGB": [
+        55,
+        55,
+        55
+      ]
+    },
+    {
+      "name": "North Pacific",
+      "location": {
+        "lon": -150,
+        "lat": 25
+      },
+      "expected": "water",
+      "surface": "water",
+      "matchesExpected": true,
+      "sourceRGB": [
+        10,
+        11,
+        0
+      ]
+    },
+    {
+      "name": "South Atlantic",
+      "location": {
+        "lon": -15,
+        "lat": -25
+      },
+      "expected": "water",
+      "surface": "water",
+      "matchesExpected": true,
+      "sourceRGB": [
+        25,
+        19,
+        0
+      ]
+    },
+    {
+      "name": "Indian Ocean",
+      "location": {
+        "lon": 75,
+        "lat": -25
+      },
+      "expected": "water",
+      "surface": "water",
+      "matchesExpected": true,
+      "sourceRGB": [
+        145,
+        109,
+        0
+      ]
+    },
+    {
+      "name": "North America",
+      "location": {
+        "lon": -105,
+        "lat": 40
+      },
+      "expected": "land",
+      "surface": "land",
+      "matchesExpected": true,
+      "sourceRGB": [
+        48,
+        48,
+        48
+      ]
+    },
+    {
+      "name": "Madagascar",
+      "location": {
+        "lon": 47,
+        "lat": -20
+      },
+      "expected": "land",
+      "surface": "land",
+      "matchesExpected": true,
+      "sourceRGB": [
+        52,
+        52,
+        52
+      ]
+    },
+    {
+      "name": "Lake Victoria",
+      "location": {
+        "lon": 33,
+        "lat": -1
+      },
+      "expected": "water",
+      "surface": "water",
+      "matchesExpected": true,
+      "sourceRGB": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Lake Superior",
+      "location": {
+        "lon": -87,
+        "lat": 47
+      },
+      "expected": "water",
+      "surface": "water",
+      "matchesExpected": true,
+      "sourceRGB": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Caspian Sea",
+      "location": {
+        "lon": 51,
+        "lat": 42
+      },
+      "expected": "water",
+      "surface": "water",
+      "matchesExpected": true,
+      "sourceRGB": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "coastlineTransects": [
+    {
+      "name": "West Africa",
+      "latitude": 10,
+      "longitudeRange": [
+        -22,
+        -8
+      ],
+      "sourceEdges": [
+        943
+      ],
+      "maskEdges": [
+        944
+      ],
+      "nearestEdgeErrorSourcePixels": 1
+    },
+    {
+      "name": "South America east coast",
+      "latitude": -20,
+      "longitudeRange": [
+        -46,
+        -33
+      ],
+      "sourceEdges": [
+        795
+      ],
+      "maskEdges": [
+        795
+      ],
+      "nearestEdgeErrorSourcePixels": 0
+    },
+    {
+      "name": "Australia west coast",
+      "latitude": -25,
+      "longitudeRange": [
+        108,
+        120
+      ],
+      "sourceEdges": [
+        1670
+      ],
+      "maskEdges": [
+        1670
+      ],
+      "nearestEdgeErrorSourcePixels": 0
+    },
+    {
+      "name": "Australia east coast",
+      "latitude": -25,
+      "longitudeRange": [
+        145,
+        159
+      ],
+      "sourceEdges": [
+        1891,
+        1895,
+        1896
+      ],
+      "maskEdges": [
+        1891,
+        1894,
+        1895
+      ],
+      "nearestEdgeErrorSourcePixels": 0
+    }
+  ]
+}

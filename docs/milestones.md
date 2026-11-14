@@ -20,8 +20,18 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Browser, listening, screen-reader and real autoplay checks remain unverified; see accessibility-checks.md.
 - Both milestones authorized together; stopped before milestone 4 for user feedback.
 
+## 4 — Geographic sound and boundary cues (implemented)
+- Natural Earth 1:50m land/lake mask, public-domain attribution, pinned source hashes, polygon holes/lake islands, independent fetch integrity checks and retry.
+- 12 surface checkpoints and 4 coastline transects passed. Approximate non-coastal mask agreement with NASA rendering: 99.7268%; exact shorelines remain uncertain.
+- Water sine / land triangle timbres with smoothed crossfades and nominal RMS compensation. Optional separate 140 Hz surface guide when data is unsampled, never a fabricated data tone.
+- Shoreline spatial hysteresis and raster-cell path inspection, including a rapid Madagascar transect. Coordinate jumps/reset do not manufacture crossings.
+- Mono four-edge/four-corner patterns, corner priority, 12/18 px entry/release zones, clipped pointer exit, stationary suppression and bounded cue replacement.
+- Accessible toggles, surface/near-shore readout and reference legend examples for every cue.
+- 44 automated tests passed (including all prior regression tests); source/markup checks and production build passed.
+- Browser, listening, actual autoplay and screen-reader usability remain unverified: required managed browser tool unavailable. Nominal waveform RMS is not a perceived-loudness certification.
+- Stop before milestone 5 for user feedback.
+
 ## Next, not implemented
-4: land/water geometry, timbres, coast and edge cues.
 5: timeline and loading consistency across frames.
 6: time-change speech, cancellation and ducking.
 7: complete accessibility/manual listening review and demonstration.

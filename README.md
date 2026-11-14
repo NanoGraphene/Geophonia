@@ -24,8 +24,12 @@ Focus map with Tab; arrows move by selected degree step, Home resets. Pointer an
 
 Start Audio begins sonification; Pause or Silence all audio stops it. Escape silences immediately. Volume defaults to 25%, pitch 160–800 Hz. Missing visual samples have a two-note cue, never a fabricated measurement. The audio legend demonstrates pitch, trace coverage and no-sample cues. Background tabs require explicit audio restart.
 
-Feature definitions, thresholds, projection and lifecycle: `docs/mappings.md`. Verification limits and demo: `docs/accessibility-checks.md`. Milestones 4–8 are not implemented.
+Feature definitions, thresholds, projection and lifecycle: `docs/mappings.md`. Verification limits and demo: `docs/accessibility-checks.md`. Milestones 2–4 are implemented; milestones 5–8 are not implemented.
 
 Assets are committed so ordinary setup needs no Python. To reproduce their derivation, use Python 3 with Pillow/NumPy and run `python scripts/prepare-assets.py --cache /absolute/cache`. Source hashes are checked before transformation. Derived colors use nearest-neighbor resampling and source sampling uses the original-resolution PNG.
 
 In the managed environment, Sites helper scripts and the browser-control tool were unavailable. npm was run directly with a workspace-local cache; source synchronization and deployment packaging use ordinary Git and a tar archive containing the exact built output and hosting manifest. No credentials are stored in source.
+
+Milestone 4 adds approximate Natural Earth land/lake classification, smooth sine/triangle surface timbres, shoreline-crossing sounds and eight distinct map-boundary patterns. All examples are in the audio legend. A separately labeled fixed 140 Hz surface guide helps identify land/water when the NASA image has no sample; it can be disabled without inventing a data value. Country borders do not change timbre. Source/geometry provenance and resolution limits are documented in `public/geography/manifest.json` and `docs/geography-validation.json`.
+
+To reproduce the geographic mask, run `python scripts/prepare-geography.py --cache /absolute/cache`. Ordinary setup uses committed assets and needs no Python. Regenerate the user-facing source ZIP with `python scripts/package-source.py` after changing source files, before the production build.

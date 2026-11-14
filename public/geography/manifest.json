@@ -1,0 +1,41 @@
+{
+  "name": "Natural Earth 1:50m land and lakes",
+  "sourceCommit": "ca96624a56bd078437bca8184e78163e5039ad19",
+  "sources": [
+    {
+      "name": "ne_50m_land.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_50m_land.geojson",
+      "sha256": "e874b27a51d146452be360cafb3cc50c86001074a67d534113e6534682f9826b",
+      "features": 1420,
+      "polygonHoles": 1
+    },
+    {
+      "name": "ne_50m_lakes.geojson",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_50m_lakes.geojson",
+      "sha256": "d350b75978b26fe839b797c2c529b2fb8f47fb3983c03f4964e36d5df9378a52",
+      "features": 412,
+      "polygonHoles": 53
+    }
+  ],
+  "license": "Public domain",
+  "terms": "https://www.naturalearthdata.com/about/terms-of-use/",
+  "attribution": "Made with Natural Earth.",
+  "mask": {
+    "url": "./geography/surface-mask.bin",
+    "width": 4096,
+    "height": 2048,
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "projection": "Equirectangular",
+    "packing": "row-major, one bit per cell, most-significant bit first; 1 land, 0 water",
+    "sha256": "c47a29ea50d0e0d18f9cac7aa0e65824c6355e28321921d78e122f8995b1559d",
+    "cellDegrees": 0.087890625,
+    "nominalEquatorialCellKm": 9.783935546875,
+    "rasterization": "Integer vertex rasterization, polygon union with holes preserved; subtract union of lake polygons. Classification refers to the selected cell."
+  },
+  "limits": "Generalized 1:50m geometry and ~9.8 km equatorial raster cells. Small islands, narrow channels, exact shorelines and seasonal/historical water changes may be omitted. This is not a 2007 shoreline reconstruction. Near-coast means a 3x3 cell neighborhood contains both surfaces. Crossing cues require a confident 3x3 interior, so thin features can classify correctly without producing a crossing cue."
+}
