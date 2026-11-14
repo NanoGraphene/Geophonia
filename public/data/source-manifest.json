@@ -1,0 +1,63 @@
+{
+  "id": "svs-3912",
+  "title": "Global Sea Surface Currents and Temperature",
+  "sourcePage": "https://svs.gsfc.nasa.gov/3912/",
+  "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+  "model": "ECCO2",
+  "width": 2048,
+  "height": 1024,
+  "sourceRectangle": [
+    0,
+    0,
+    2048,
+    1024
+  ],
+  "sourceProjection": {
+    "name": "Empirically aligned equirectangular",
+    "authoritativeCRS": null,
+    "extent": [
+      -180,
+      -90,
+      180,
+      90
+    ],
+    "validation": "docs/alignment.json",
+    "limit": "No embedded georeferencing. Approximate near coasts and poles."
+  },
+  "displayProjection": {
+    "name": "Web Mercator",
+    "latitudeLimit": 85.0511287798066,
+    "width": 1536,
+    "height": 1536,
+    "resampling": "nearest-neighbor at pixel centers"
+  },
+  "timestampTable": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/flat_ecco2_dates.txt",
+  "representedInterval": "Model averaging interval unknown; timestamp is NASA frame-table time.",
+  "frames": [
+    {
+      "frame": 23000,
+      "timestamp": "2007-03-25T12:00:00Z",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/frames/2048x1024_1x1_30p/orig/flat_global_ecco2_2028x1024.23000.tif",
+      "originalSha256": "0e135b7e502f23939ac8cf198fcdd9ae6a8ee94cbe5ed35fe55b134f40980f24",
+      "local": "./frames/ocean-23000.png",
+      "display": "./frames/ocean-23000-mercator.png"
+    }
+  ],
+  "legend": {
+    "original": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/sst_ecco2_cbar.png",
+    "local": "./frames/source-legend.png",
+    "meaning": "Trace color represents sea surface temperature; visual density is not current speed.",
+    "unitsInSource": "degrees Celsius",
+    "reportedUnits": "normalized visual palette position, not scientific temperature",
+    "anchors": {
+      "blue": 0,
+      "green": "10\u201320",
+      "yellow": "about 25",
+      "red": 32
+    }
+  },
+  "missingBehavior": "No qualifying colored trace is no interpretable visual sample, not a scientific no-data assertion or zero.",
+  "surfaceClassification": "Not implemented until milestone 4",
+  "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "endorsement": "Independent Space Apps 2026 challenge submission. No NASA endorsement."
+}
