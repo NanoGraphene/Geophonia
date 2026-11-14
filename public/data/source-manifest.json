@@ -59,5 +59,22 @@
   "missingBehavior": "No qualifying colored trace is no interpretable visual sample, not a scientific no-data assertion or zero.",
   "surfaceClassification": "Not implemented until milestone 4",
   "usage": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
-  "endorsement": "Independent Space Apps 2026 challenge submission. No NASA endorsement."
+  "endorsement": "Independent Space Apps 2026 challenge submission. No NASA endorsement.",
+  "sampling": {
+    "palette": "./data/palette.json",
+    "radiusDefault": 2,
+    "radiusOptions": [
+      1,
+      2,
+      4
+    ],
+    "minBrightness": 24,
+    "minChroma": 20,
+    "minSaturation": 0.3,
+    "maxNormalizedRgbDistance": 0.2,
+    "value": "Mean normalized position in actual source colorbar over qualifying trace pixels",
+    "density": "Qualifying trace pixels divided by total available pixels in the source neighborhood",
+    "scientificUnitsReported": false,
+    "colorNormalization": "Subtract minimum RGB channel, divide by chroma (max-min); compare to identically normalized source palette."
+  }
 }
