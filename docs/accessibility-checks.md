@@ -17,14 +17,13 @@ Demo sequence: start at 30° N 45° W; Start Audio; change spatial step to 5° a
 
 Milestone 4 automated checks also cover pinned mask integrity, lake holes and islands, cross-country travel, near-coast hysteresis, rapid Madagascar entry/exit, antimeridian path choice, all edges/corners, resize/exit clipping, mute/cancellation and separate reference-guide gain. 44 tests pass. No timeline or TTS is included yet.
 
-Additional manual milestone 4 demo/checks:
-- Play “Water timbre” and “Land timbre” at the same reference pitch; compare perceived loudness with mono speakers and headphones. Check the separate 140 Hz guide, then disable its toggle and confirm missing samples retain zero data tone.
-- Go to 10° N, 20° W, choose 1° step, focus the map and move east across the west African shoreline. Crossing should rise into land; return west to hear falling notes. Near-shore jitter should not repeatedly beep.
-- Go to 20° S, 40° E and move east over Madagascar. With coarse moves the path checker should still detect entry and exit; small unrepresented islands/channels can be omitted.
-- Play each of the eight map-boundary reference buttons. Confirm directions remain identifiable without stereo and corner patterns combine vertical then horizontal.
-- At 0° latitude, 179° longitude, focus map and move east: right edge then antimeridian/left edge. At latitude 85° and longitude 179°, an up move should produce the top-right corner pattern once. Holding at the limit must not repeat it.
-- Move the pointer rapidly out of an edge/corner. The exit cue may finish while the data/reference tones fade. Re-enter to re-arm. Press Escape mid-cue: every voice must stop immediately.
-- Toggle shoreline/boundary cues off during a cue and change volume to zero during queued notes. No stale cue should remain.
-- Block the geography binary or corrupt its bytes. Surface must become unavailable with a Retry surface geometry button; NASA data sound and edge cues remain usable. Do not infer land/water from NASA colors.
+Current sound revision supersedes the earlier sine/triangle and shoreline-beep demos. 47 automated checks cover the new harmonic wave, filter smoothing, constant oscillator across surfaces, silent crossing events, zero-contrast equality, softened cue envelopes, and all existing coordinate/geography regressions.
 
-These manual checks have not been executed in this environment. Obtain blind/low-vision participant feedback before treating cue recognizability and screen-reader behavior as verified.
+Manual checks still needed:
+- Play “Hear the continuous filter morph”: one held pitch changes water → land → water by filter only. Test 0%, 65% and 100% contrast and find a comfortable setting.
+- Go to 10° N, 20° W and move east over west Africa. Surface should become brighter without a notification, including on the fixed 140 Hz guide when no visual sample exists.
+- Traverse gaps in the ocean image: text reports no sample, data tone stops, optional reference persists, and no repeated beeps play.
+- Audition all softened boundary mallets in mono. Confirm the rhythms remain identifiable with longer overlapping release tails.
+- Escape/Silence, volume zero during queued sounds, inactive tabs, failed geometry loading, keyboard navigation, zoom and screen readers still need browser verification.
+
+These listening/browser checks have not been performed in the managed environment.

@@ -9,12 +9,15 @@ class Param {
  linearRampToValueAtTime(v,t){this.events.push(['ramp',v,t]);}
 }
 class Node {
- constructor(){this.gain=new Param();this.frequency=new Param();this.stopped=false;}
+ constructor(){this.gain=new Param();this.frequency=new Param();this.stopped=false;this.Q=new Param();}
+ setPeriodicWave(wave){this.wave=wave;}
  connect(){} disconnect(){} start(){} stop(){this.stopped=true;}
 }
 class Context {
  constructor(){this.currentTime=1;this.state='suspended';this.destination={};this.oscillators=[];}
  createGain(){return new Node();}
+ createBiquadFilter(){return new Node();}
+ createPeriodicWave(real,imag){return {real,imag};}
  createOscillator(){const n=new Node();this.oscillators.push(n);return n;}
  async resume(){this.state='running';}
  async suspend(){this.state='suspended';}
@@ -30,12 +33,12 @@ test('audio is user-started, smooths updates and synchronously closes master on 
  assert.ok(engine.oscillator.frequency.events.some(e=>e[0]==='smooth'));
  engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
 });
-test('no-sample cue plays once per entry, is cancelled on a valid sample, and re-arms',async()=>{
+test('missing samples do not trigger automatic notifications',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
- engine.update(missing,prefs,true);assert.equal(engine.pendingTones.size,2);
- engine.update(missing,prefs,true);assert.equal(engine.pendingTones.size,2);
+ engine.update(missing,prefs,true);assert.equal(engine.pendingTones.size,0);
+ engine.update(missing,prefs,true);assert.equal(engine.pendingTones.size,0);
  engine.update(valid,prefs,true);assert.equal(engine.pendingTones.size,0);
- engine.update(missing,prefs,true);assert.equal(engine.pendingTones.size,2);
+ engine.update(missing,prefs,true);assert.equal(engine.pendingTones.size,0);
  engine.stop();assert.equal(engine.pendingTones.size,0);
 });
 test('silence invalidates an in-flight resume and cannot be undone by late completion',async()=>{
@@ -49,7 +52,7 @@ test('a new legend cancels old examples and uses the configured pitch range',asy
  engine.legend('pitch',{...prefs,minHz:200,maxHz:1000});
  assert.deepEqual([...engine.pendingTones].map(o=>o.oscillator.frequency.value),[200,Math.sqrt(200000),1000]);
  const old=[...engine.pendingTones];engine.legend('missing',prefs);
- assert.ok(old.every(e=>e.oscillator.stopped));assert.equal(engine.pendingTones.size,2);
+ assert.ok(old.every(e=>e.oscillator.stopped));assert.equal(engine.pendingTones.size,1);
  engine.stop();assert.equal(engine.pendingTones.size,0);
 });
 test('outside map fades continuous sound and a browser interruption stops audio',async()=>{
@@ -59,32 +62,31 @@ test('outside map fades continuous sound and a browser interruption stops audio'
  assert.equal(engine.enabled,false);assert.equal(engine.master.gain.value,0);assert.equal(interrupted,true);
 });
 
-test('land and water timbres crossfade and match nominal waveform RMS',async()=>{
+test('land and water continuously morph the same harmonic voice filter without retriggering',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
- engine.update(valid,prefs,true,'water');
- assert.equal(engine.water.oscillator.type,'sine');assert.equal(engine.land.oscillator.type,'triangle');
- assert.equal(engine.water.mix.gain.value,1);assert.equal(engine.land.mix.gain.value,0);
- engine.update(valid,prefs,true,'land');
- assert.equal(engine.water.mix.gain.value,0);assert.equal(engine.land.mix.gain.value,Math.sqrt(1.5));
- assert.ok(engine.land.mix.gain.events.some(e=>e[0]==='smooth'));
- assert.equal(engine.water.oscillator.frequency.value,engine.land.oscillator.frequency.value);
+ engine.update(valid,prefs,true,'water');const waterCutoff=engine.dataVoice.filter.frequency.value;
+ const initialVoices=context.oscillators.length;
+ engine.update(valid,prefs,true,'land');assert.ok(engine.dataVoice.filter.frequency.value>waterCutoff);
+ assert.equal(context.oscillators.length,initialVoices);assert.equal(engine.pendingTones.size,0);
+ assert.ok(engine.dataVoice.oscillator.wave.imag[2]>0);
+ assert.ok(engine.dataVoice.filter.frequency.events.some(e=>e[0]==='smooth'&&e[3]===.18));
  assert.equal(engine.level.gain.value,.03);engine.stop();
 });
 test('no visual sample retains null data pitch while optional surface guide remains separate',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
  engine.update(missing,{...prefs,surfaceGuide:true},true,'land');
  assert.equal(engine.level.gain.value,0);assert.equal(engine.guideLevel.gain.value,.05*prefs.volume);
- assert.equal(engine.guideLand.oscillator.frequency.value,140);
+ assert.equal(engine.guideVoice.oscillator.frequency.value,140);
  engine.update(missing,{...prefs,surfaceGuide:false},true,'land');assert.equal(engine.guideLevel.gain.value,0);
  engine.update(missing,prefs,true,'unknown');assert.equal(engine.guideLevel.gain.value,0);
  engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.guideLevel.gain.value,0);
 });
-test('navigation cues replace stale navigation, give corners priority and cap rapid crossings',async()=>{
+test('boundary cues replace stale cues and shoreline crossings stay silent',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
  engine.navigationCue({boundary:'left'},prefs);const old=[...engine.pendingTones];
  engine.navigationCue({boundary:'top-right',crossings:[{to:'land'},{to:'water'},{to:'land'},{to:'water'}]},prefs);
  assert.ok(old.every(e=>e.oscillator.stopped));
- assert.equal([...engine.pendingTones].filter(t=>t.group==='navigation').length,9); // 5 corner notes + 2 most recent two-note crossings.
+ assert.equal([...engine.pendingTones].filter(t=>t.group==='navigation').length,5); // Corner only; even legacy crossing events cannot produce notes.
  engine.stop();assert.equal(engine.pendingTones.size,0);assert.equal(engine.master.gain.value,0);
 });
 test('muted and disabled cue preferences schedule no navigation sound',async()=>{
@@ -107,4 +109,26 @@ test('volume changes cancel already scheduled cue notes, including setting zero 
  engine.navigationCue({boundary:'top-right',crossings:[{to:'land'}]},prefs);assert.ok(engine.pendingTones.size>0);
  engine.update(valid,{...prefs,volume:0},false,'water');assert.equal(engine.pendingTones.size,0);
  assert.equal(engine.level.gain.value,0);assert.equal(engine.guideLevel.gain.value,0);engine.stop();
+});
+
+test('surface contrast zero gives the same filter for both surfaces, pitch remains data-driven',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();
+ engine.update(valid,{...prefs,surfaceContrast:0},true,'water');const cutoff=engine.dataVoice.filter.frequency.value;
+ const pitch=engine.oscillator.frequency.value;
+ engine.update(valid,{...prefs,surfaceContrast:0},true,'land');assert.equal(engine.dataVoice.filter.frequency.value,cutoff);
+ assert.equal(engine.oscillator.frequency.value,pitch);
+ engine.navigationCue({crossings:[{to:'water'},{to:'land'}]},prefs);assert.equal(engine.pendingTones.size,0);engine.stop();
+});
+test('boundary mallets use a harmonic wave and softened envelopes',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();engine.navigationCue({boundary:'left'},prefs);
+ const note=[...engine.pendingTones][0];assert.ok(note.oscillator.wave.imag[3]>0);
+ assert.equal(note.voice.filter.type,'lowpass');
+ assert.ok(note.gain.gain.events.some(e=>e[0]==='ramp'&&e[2]>=1.04));engine.stop();
+});
+
+test('surface morph demonstration holds one oscillator and changes only its filter',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();engine.legend('surface-morph',prefs);
+ assert.equal(engine.pendingTones.size,1);const entry=[...engine.pendingTones][0];
+ const changes=entry.voice.filter.frequency.events.filter(e=>e[0]==='smooth');
+ assert.equal(changes.length,2);assert.ok(changes[0][1]>changes[1][1]);engine.stop();
 });

@@ -36,3 +36,10 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 6: time-change speech, cancellation and ducking.
 7: complete accessibility/manual listening review and demonstration.
 8: optional enhancements.
+
+## Sound-design revision — user feedback
+- Replaced simple waveform timbres with a native additive harmonic wavetable synth and continuous low-pass surface modifier. Default 65% surface contrast is adjustable; zero yields identical filters.
+- Removed land/water notification sounds and their UI. Removed automatic gap beeps. Optional fixed 140 Hz surface guide stays distinct from missing data.
+- Soft harmonic mallet edge/corner cues, longer envelopes and quieter gain. Added a held-note filter-morph demonstration.
+- 47 tests, source checks and production build passed. Manual listening/browser/screen-reader review remains unverified; subjective sound comfort needs user feedback.
+- This revises milestone 4; timeline work is still pending.
