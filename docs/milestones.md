@@ -57,3 +57,8 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Native fullscreen exit restores the standard view and pauses sound; late request completion after dialog close exits fullscreen.
 - Re-downloaded NASA temperature frame: original source hash and all decoded RGB pixels match. Confirmed 2048×1024 full sequence image; logo/date are embedded in that original, not evidence of a thumbnail.
 - Added source-image link and image-vs-raw-data provenance in the interface. 59 automated checks and production build passed. Browser fullscreen/layout reproduction remains unverified because the managed browser-control tool is unavailable.
+
+## Full-world fullscreen fit correction
+- Replaced the cropped landscape viewport with a complete centered square map, sized to the smaller available stage dimension. Letterboxing replaces crop/zoom.
+- Pointer/cursor conversion uses the full world extent in every layout; map-edge cues refer to the fitted image rectangle rather than the margins.
+- Added landscape, portrait, compact and collapsed-stage containment regression coverage. 60 tests, source checks and build passed. Actual browser rendering remains unverified in this environment.

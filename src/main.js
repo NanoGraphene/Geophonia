@@ -3,7 +3,7 @@ import { formatLocation, geoToMercator, geoToSource, moveLocation, pointerToGeo,
 import { createStore, START_LOCATION } from './state.js';
 import { canUseBrowserFullscreen, enterBrowserFullscreen } from './fullscreen.js';
 import { DATASETS, sampleDataset, createSelectionGate } from './datasets.js';
-import { mapViewport, toView, fromView } from './map-view.js';
+import { fitMap, mapViewport, toView, fromView } from './map-view.js';
 import { loadSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
@@ -288,12 +288,12 @@ function pointerLocation(event){
 }
 function layoutMap(){
  const stage=$('map-stage');
- if(expanded){$('map').style.height=`${Math.min(stage.clientHeight,stage.clientWidth)}px`;}
- else $('map').style.height='';
- const rect=$('map').getBoundingClientRect();
- const center=geoToMercator(store.get().location.lon,store.get().location.lat).y;
- viewport=mapViewport(rect.width,rect.height,expanded,center);
- $('frame').style.objectPosition=`50% ${viewport.span<1?viewport.top/(1-viewport.span)*100:50}%`;
+ if(expanded){
+  const fitted=fitMap(stage.clientWidth,stage.clientHeight);
+  $('map').style.width=`${fitted.width}px`; $('map').style.height=`${fitted.height}px`;
+ } else { $('map').style.width=''; $('map').style.height=''; }
+ viewport=mapViewport();
+ $('frame').style.objectPosition='50% 50%';
  boundaryTracker.reset();
 }
 const panel=$('map-panel'), placeholder=document.createComment('map panel position');panel.before(placeholder);
