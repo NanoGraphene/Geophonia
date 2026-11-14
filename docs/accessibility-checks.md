@@ -27,3 +27,5 @@ Manual checks still needed:
 - Escape/Silence, volume zero during queued sounds, inactive tabs, failed geometry loading, keyboard navigation, zoom and screen readers still need browser verification.
 
 These listening/browser checks have not been performed in the managed environment.
+
+Expanded-map/land-source manual checks: choose the temperature dataset, press Land test and Start Audio, then compare Water test. Both must show a numeric visual feature and data pitch (not “No data tone”). Expand the map, resize landscape/portrait, move by mouse/arrows, and return: selected geographic location stays fixed during layout changes. Verify focus containment, Escape silence/close, optional native fullscreen failure fallback and all expanded controls. Rapidly switch datasets with delayed/failed requests: no stale frame or sample may appear. All remain pending browser checks. Pure conversion, request-gate and real-source patch regressions are automated (55 tests).

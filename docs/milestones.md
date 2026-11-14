@@ -43,3 +43,10 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Soft harmonic mallet edge/corner cues, longer envelopes and quieter gain. Added a held-note filter-morph demonstration.
 - 47 tests, source checks and production build passed. Manual listening/browser/screen-reader review remains unverified; subjective sound comfort needs user feedback.
 - This revises milestone 4; timeline work is still pending.
+
+## Expanded map and land-capable dataset revision
+- Window-filling modal map, optional native browser fullscreen, visible dataset/audio/silence controls, preserved selection and projection-aware viewport conversion.
+- Added frozen NASA SVS 5147 GEOS-FP temperature snapshot covering land and water, with exact timestamp, attribution, independent palette, overlay masks and terrain-shading limits.
+- Added Sahara/Atlantic test buttons and a dataset selector retaining the ocean resource. Real temperature patches verify land and water samples.
+- Versioned loading clears previous samples, prevents stale commits and supports failed-source retry. This does not implement temporal navigation yet.
+- 55 automated tests, source checks and production build passed. Browser fullscreen/focus/layout, listening and screen-reader verification remain unverified because the managed browser tool is unavailable.

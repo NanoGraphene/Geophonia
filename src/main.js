@@ -1,6 +1,8 @@
 import './styles.css';
 import { formatLocation, geoToMercator, geoToSource, moveLocation, pointerToGeo, mercatorToGeo, MAX_LAT } from './coordinates.js';
 import { createStore, START_LOCATION } from './state.js';
+import { DATASETS, sampleDataset, createSelectionGate } from './datasets.js';
+import { mapViewport, toView, fromView } from './map-view.js';
 import { loadSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
@@ -13,6 +15,9 @@ const audio = new AudioEngine();
 const audioSupported = !!(globalThis.AudioContext || globalThis.webkitAudioContext);
 let source = null, geography = null, spatialTimer, active = false, legendPlaying = false, legendTimer, starting = false, pointerInside = false;
 const boundaryTracker = new BoundaryTracker();
+const selectionGate = createSelectionGate();
+let pendingDataset = 'svs-3912', expanded = false;
+let viewport = mapViewport(1,1,false);
 function announce(text, immediate = false) {
   clearTimeout(spatialTimer);
   spatialTimer = setTimeout(() => { $('status').textContent = text; }, immediate ? 0 : 450);
@@ -23,12 +28,23 @@ function surfaceDescription(state) {
 function sampleDescription(state) {
   if (!state.sample) return 'Source is not ready.';
   if (state.sample.value === null) return 'No interpretable visual sample. This is not a scientific zero or verified no-data flag.';
-  return `Image-derived temperature-color position ${Math.round(state.sample.value * 100)} of 100. Visual trace coverage ${Math.round(state.sample.density * 100)} percent.`;
+  return `Image-derived temperature-color position ${Math.round(state.sample.value * 100)} of 100. ${DATASETS[state.dataset].density} ${Math.round(state.sample.density * 100)} percent.`;
 }
 function render(state) {
-  const point = geoToMercator(state.location.lon, state.location.lat);
+  const projected = geoToMercator(state.location.lon, state.location.lat);
+  if(projected.y < viewport.top || projected.y > viewport.bottom) layoutMap();
+  const point = toView(projected, viewport);
   $('cursor').style.left = `${point.x * 100}%`;
   $('cursor').style.top = `${point.y * 100}%`;
+  const definition = DATASETS[state.dataset];
+  $('feature-label').textContent = definition.feature;
+  $('density-label').textContent = definition.density;
+  $('session-topic').textContent = definition.topic;
+  const timestamp = source?.manifest.frames[0].timestamp;
+  const timeLabel = timestamp ? new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(timestamp))+' UTC' : 'Dataset not ready';
+  $('selected-time').textContent = timeLabel; $('session-date').textContent = timeLabel;
+  $('expanded-readout').textContent = `${formatLocation(state.location)} · ${state.surface} · ${state.sample?.value != null ? Math.round(state.sample.value*100)+'/100 visual' : 'No visual sample'}`;
+  $('expanded-audio').textContent = state.audio.enabled ? 'Pause audio' : 'Start audio';
   $('location').textContent = formatLocation(state.location);
   // Do not replace a user's partially typed coordinate while editing the form.
   if (document.activeElement !== $('latitude')) $('latitude').value = state.location.lat.toFixed(2);
@@ -50,6 +66,7 @@ function render(state) {
   $('geography-status').textContent = state.geographyStatus === 'ready' ? 'Approximate land/water geometry · Natural Earth 1:50m' : state.geographyStatus === 'loading' ? 'Loading land/water geometry…' : 'Surface geometry unavailable. Data tones and map-edge cues still work.';
   $('start-audio').innerHTML = state.audio.enabled ? '<span aria-hidden="true">Ⅱ</span> Pause audio' : '<span aria-hidden="true">▶</span> Start audio';
   $('start-audio').disabled = !audioSupported || !source || starting;
+  $('expanded-audio').disabled = $('start-audio').disabled;
   if (!audioSupported) $('audio-status').textContent = 'Web Audio is unavailable. Map navigation and text remain available.';
   else if (!state.audio.enabled) $('audio-status').textContent = 'Audio is off. Start when you’re ready.';
   else if (legendPlaying) $('audio-status').textContent = 'Playing an audio legend example.';
@@ -59,7 +76,7 @@ function render(state) {
 }
 store.subscribe(render);
 function resample(location = store.get().location, extra = {}) {
-  const sample = source ? sampleNeighborhood(source.imageData, location, store.get().radius, source.palette) : null;
+  const sample = source ? sampleDataset(source, location, store.get().radius, sampleNeighborhood) : null;
   const surface = geography?.mask.classify(location) ?? { surface: 'unknown', nearCoast: false };
   return store.update({ ...extra, location, sample, validity: sample?.validity ?? 'loading', surface: surface.surface, nearCoast: surface.nearCoast });
 }
@@ -71,7 +88,7 @@ function select(location, immediate = false, mode = 'relocate') {
   active = true;
   pointerInside = mode === 'pointer';
   if (mode === 'relocate') boundaryTracker.reset();
-  const boundary = boundaryTracker.update(geoToMercator(location.lon, location.lat), $('map').getBoundingClientRect());
+  const boundary = boundaryTracker.update(toView(geoToMercator(location.lon, location.lat), viewport), $('map').getBoundingClientRect());
   const preferences = store.get().audio;
   const parts = [];
   if (boundary && preferences.boundaryCues) parts.push(`${boundary.replace('-', ' ')} map boundary`);
@@ -100,12 +117,12 @@ $('map').addEventListener('focus', () => {
 });
 $('map').addEventListener('pointermove', event => {
   if (event.pointerType === 'touch' && event.buttons === 0) return;
-  const location = pointerToGeo(event.clientX, event.clientY, $('map').getBoundingClientRect());
+  const location = pointerLocation(event);
   if (location) select(location, false, 'pointer');
 });
 $('map').addEventListener('pointerdown', event => {
   $('map').focus({ preventScroll: true });
-  const location = pointerToGeo(event.clientX, event.clientY, $('map').getBoundingClientRect());
+  const location = pointerLocation(event);
   if (location) select(location, true, 'pointer');
 });
 function leaveMap(event) {
@@ -113,11 +130,12 @@ function leaveMap(event) {
   if (pointerInside && event.type === 'pointerleave') {
     const rect = $('map').getBoundingClientRect();
     if (rect.width && rect.height && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
-      const from = geoToMercator(store.get().location.lon, store.get().location.lat);
+      const from = toView(geoToMercator(store.get().location.lon, store.get().location.lat), viewport);
       const to = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height };
       if (to.x < 0 || to.x > 1 || to.y < 0 || to.y > 1) {
         const exit = clipExitPoint(from, to);
-        select(mercatorToGeo(exit.x, exit.y), false, 'pointer');
+        const globalExit = fromView(exit,viewport);
+        select(mercatorToGeo(globalExit.x, globalExit.y), false, 'pointer');
       }
     }
   }
@@ -216,27 +234,82 @@ async function initializeGeography() {
     console.error(error);
   } finally { $('retry-geography').disabled = false; }
 }
-async function initialize() {
+async function initialize(id = pendingDataset) {
+  pendingDataset = id; const ticket = selectionGate.next();
+  active = false; stopLegend(); audio.cancelTones(); audio.fade(); source = null;
+  store.update({sample:null,validity:'loading'});
   $('retry').hidden = true; $('map').setAttribute('aria-busy', 'true');
-  $('load-message').hidden = false; $('load-message').textContent = 'Loading NASA frame…';
+  $('load-message').hidden = false; $('load-message').textContent = 'Loading NASA dataset…';
   for (const b of document.querySelectorAll('[data-legend]')) b.disabled = true;
   try {
-    source = await loadSource();
-    const display = $('frame'); display.src = source.manifest.frames[0].display;
-    await display.decode();
-    $('load-message').hidden = true;
-    resample(); $('map').setAttribute('aria-busy', 'false');
+    const candidate = await loadSource(id);
+    const image = new Image(); image.src = candidate.manifest.frames[0].display; await image.decode();
+    if (!selectionGate.current(ticket)) return;
+    source = candidate; $('frame').src = image.src; $('frame').alt = DATASETS[id].alt;
+    $('source-link').href = source.manifest.sourcePage; $('credit-text').textContent = source.manifest.credit;
+    $('manifest-link').href = DATASETS[id].manifest;
+    $('source-legend').src = source.manifest.legend.local;
+    $('source-legend').alt = id === 'svs-5147' ? 'NASA near-surface temperature colorbar, minus 40 to plus 40 degrees Celsius. Application values are visual estimates.' : 'NASA sea surface temperature source colorbar, 0 to 32 degrees Celsius. Application values are visual estimates.';
+    $('dataset-description').textContent = `${source.manifest.title}. ${source.manifest.representedInterval} ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
+    $('matching-description').textContent = source.manifest.matching === 'rgb' ? 'This non-monotonic temperature palette is matched in literal RGB space, not hue. Terrain shading and repeated colors make values approximate; no scientific Celsius values are reported. Annotation rectangles are masked. Coverage is the fraction of neighborhood pixels matching the source legend.' : 'Ocean traces use chromatic source-palette matching. Mean visual palette position controls pitch; trace coverage controls amplitude. These are image-derived features, not measured temperature or current speed.';
+    $('palette-track').style.background = source.manifest.matching === 'rgb' ? `linear-gradient(90deg,${source.palette.map(c=>'rgb('+c.join(',')+')').join(',')})` : '';
+    $('load-message').hidden = true; $('map').setAttribute('aria-busy','false');
+    resample(store.get().location,{dataset:id,variable:source.manifest.variable??'temperature-color',timestamp:source.manifest.frames[0].timestamp});
     for (const b of document.querySelectorAll('[data-legend]')) b.disabled = !audioSupported;
-    announce('NASA frame ready. Focus the map and use arrow keys to explore. Audio starts only when requested.', true);
-  } catch (error) {
-    source = null; store.update({ validity: 'load-error', sample: null, geographyStatus: 'unavailable' });
-    $('map').setAttribute('aria-busy', 'false'); $('load-message').hidden = false;
-    $('load-message').textContent = 'The NASA frame or palette could not load. Try again.';
-    $('retry').hidden = false; announce($('load-message').textContent, true);
-    console.error(error); return;
+    announce(`${source.manifest.title} ready. ${sampleDescription(store.get())}`,true);
+    if (!geography && store.get().geographyStatus !== 'loading') await initializeGeography();
+  } catch(error) {
+    if (!selectionGate.current(ticket)) return;
+    source = null; store.update({validity:'load-error',sample:null});
+    $('map').setAttribute('aria-busy','false'); $('load-message').hidden=false;
+    $('load-message').textContent='Selected dataset could not load. Retry or choose another dataset.';
+    $('retry').hidden=false; announce($('load-message').textContent,true); console.error(error);
   }
-  await initializeGeography();
 }
-$('retry').addEventListener('click', initialize);
+$('retry').addEventListener('click',()=>initialize());
+$('dataset').addEventListener('change',event=>initialize(event.target.value));
+for(const [id,location] of [['land-test',{lon:15,lat:23}],['water-test',{lon:-45,lat:30}]]) {
+ $(id).addEventListener('click',()=>{
+  select(location,true);
+  if(pendingDataset!=='svs-5147'){$('dataset').value='svs-5147';initialize('svs-5147');}
+ });
+}
 $('retry-geography').addEventListener('click', initializeGeography);
-render(store.get()); initialize();
+function pointerLocation(event){
+ const local = pointerToGeo(event.clientX,event.clientY,$('map').getBoundingClientRect());
+ if(!local)return null;
+ const position=fromView(geoToMercator(local.lon,local.lat),viewport);
+ return mercatorToGeo(position.x,position.y);
+}
+function layoutMap(){
+ const stage=$('map-stage');
+ if(expanded){$('map').style.height=`${Math.min(stage.clientHeight,stage.clientWidth)}px`;}
+ else $('map').style.height='';
+ const rect=$('map').getBoundingClientRect();
+ const center=geoToMercator(store.get().location.lon,store.get().location.lat).y;
+ viewport=mapViewport(rect.width,rect.height,expanded,center);
+ $('frame').style.objectPosition=`50% ${viewport.span<1?viewport.top/(1-viewport.span)*100:50}%`;
+ boundaryTracker.reset();
+}
+const panel=$('map-panel'), placeholder=document.createComment('map panel position');panel.before(placeholder);
+$('expand-map').addEventListener('click',()=>{
+ pointerInside=false; expanded=true; $('expanded-content').append(panel); $('expanded-dialog').showModal();
+ document.body.classList.add('map-expanded'); layoutMap(); render(store.get()); $('map').focus();
+});
+function closeExpanded(){
+ pointerInside=false;
+ if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+ expanded=false; placeholder.after(panel); $('expanded-dialog').close();
+ document.body.classList.remove('map-expanded'); layoutMap(); render(store.get()); $('expand-map').focus();
+}
+$('close-expanded').addEventListener('click',closeExpanded);
+$('expanded-dialog').addEventListener('cancel',event=>{event.preventDefault();silence();closeExpanded();});
+$('expanded-audio').addEventListener('click',()=>$('start-audio').click());
+$('expanded-silence').addEventListener('click',()=>silence());
+$('browser-fullscreen').addEventListener('click',async()=>{
+ try{if(document.fullscreenElement)await document.exitFullscreen();else await $('expanded-dialog').requestFullscreen();}
+ catch{announce('Browser fullscreen is unavailable. Expanded map remains available.',true);}
+});
+document.addEventListener('fullscreenchange',()=>{layoutMap();render(store.get());if(!document.fullscreenElement)silence('Browser fullscreen exited. Audio paused.');});
+new ResizeObserver(()=>{layoutMap();render(store.get());}).observe($('map-stage'));
+render(store.get()); initialize(); initializeGeography();

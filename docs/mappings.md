@@ -56,3 +56,9 @@ Mono patterns (panning is unnecessary):
 - Corners: vertical pattern followed by horizontal pattern starting at 420 ms.
 
 Boundary patterns use the harmonic mallet envelopes described above. A preference toggles boundary cues; shorelines only modify the continuous filter. Silence, Escape and tab inactivity cancel every cue and both continuous voice groups.
+
+## Dataset and expanded viewport revision
+
+Ocean chromatic matching remains unchanged. SVS 5147 uses literal RGB matching because its temperature palette is not monotonic in hue; see `temperature-source.md`. Location and preferences survive source changes; frame, palette, metadata and timestamp commit together behind a request-generation guard. A failed new load cannot allow an older response to commit.
+
+Expanded view uses a native modal dialog and optionally the browser Fullscreen API. The existing map element is moved, not cloned. Native dialog focus containment leaves background controls inert; expanded audio controls proxy the same engine. On close, focus returns to Expand map. Landscape viewport uses full world longitude and a visible Mercator-y span of height/width centered on the selected location, clipped to [0,1]. Image object-position and coordinate/cursor conversions use this same viewport. No geometric stretching is applied. Keyboard travel outside the visible latitude range recenters; portrait retains the square world view. Boundary cues use the visible interactive rectangle and are reset on resize. Resize/expand/restore preserve latitude/longitude. Escape retains emergency silence behavior; fullscreen exit also pauses audio.
