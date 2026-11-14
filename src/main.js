@@ -5,6 +5,9 @@ import { loadSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
+import { spokenLocation, spokenValue, spokenMapDescription } from './announcements.js';
+import { speak, stopSpeech } from './speech.js';
+
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
@@ -139,8 +142,21 @@ $('start-audio').addEventListener('click', async () => {
   else await startAudio();
 });
 $('silence').addEventListener('click', () => silence());
-document.addEventListener('keydown', event => { if (event.key === 'Escape') silence(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) silence('Audio paused while this tab is inactive. Select Start audio to resume.'); });
+const SPEECH_KEYS = {
+  '1': state => spokenLocation(state.location),
+  '2': state => spokenValue(state.sample),
+  '3': state => spokenMapDescription(source?.manifest, state.timestamp),
+};
+document.addEventListener('keydown', event => {
+  if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey || event.repeat) return;
+  if (event.target.closest('input, select, textarea')) return;
+  const build = SPEECH_KEYS[event.key];
+  if (!build) return;
+  event.preventDefault();
+  speak(build(store.get()));
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape') { stopSpeech(); silence(); } });
 window.addEventListener('pagehide', () => silence());
 for (const button of document.querySelectorAll('[data-legend]')) button.addEventListener('click', async () => {
   if (!source || !audioSupported || starting) return;
