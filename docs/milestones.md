@@ -73,3 +73,8 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Reconnected spatially hysteretic shoreline detection to distinct single-impact earcons: 45 ms low woody knock entering land and 85 ms bright droplet entering water. No country-border cues.
 - At most two recent crossings, no long backlog; zero missing-data drone; reset/time/preferences never simulate crossings. Added dedicated legend auditions and crossing toggle.
 - 60 automated checks and production build passed, including duration/signature, neutral-voice, missing-sample silence, country borders, rapid island transit, jitter and cancellation regressions. Manual listening remains unverified.
+
+## Right-click audio start
+- Map context-menu gesture selects the clicked location and starts/resumes audio through the same guarded explicit-start flow, in standard and expanded layouts.
+- Already enabled audio stays on; browser context menus elsewhere are unaffected. Loading guard and existing Silence/Escape controls are retained.
+- 60 regression tests, source/label checks and production build passed. Actual browser right-click/autoplay checks remain unverified in this environment.

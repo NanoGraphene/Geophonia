@@ -131,6 +131,16 @@ $('map').addEventListener('pointerdown', event => {
   const location = pointerLocation(event);
   if (location) select(location, true, 'pointer');
 });
+$('map').addEventListener('contextmenu', event => {
+  event.preventDefault();
+  $('map').focus({preventScroll:true});
+  const location=pointerLocation(event);
+  if(location)select(location,true,'pointer');
+  stopLegend();
+  if(!source){announce('Wait for the selected dataset to finish loading before starting audio.',true);return;}
+  if(!store.get().audio.enabled)startAudio();
+  else {active=true;render(store.get());}
+});
 function leaveMap(event) {
   if (event.type === 'pointercancel') audio.cancelTones();
   if (pointerInside && event.type === 'pointerleave') {
