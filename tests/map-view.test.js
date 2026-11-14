@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fitMap,mapViewport,toView,fromView} from '../src/map-view.js';
-import {geoToMercator,mercatorToGeo} from '../src/coordinates.js';
+import {geoToMercator,mercatorToGeo,pointerToGeo} from '../src/coordinates.js';
 test('expanded landscape retains the complete world extent',()=>{
  const v=mapViewport(1600,600,true,.5);assert.equal(v.span,1);assert.equal(v.top,0);assert.equal(v.bottom,1);
  assert.equal(fromView({x:0,y:0},v).y,v.top);assert.equal(fromView({x:1,y:1},v).y,v.bottom);
@@ -23,11 +23,16 @@ test('collapsed transient viewport dimensions do not produce division by zero',(
  const v=mapViewport(800,0,true,.5);assert.ok(v.span>0);assert.ok(Number.isFinite(toView({x:.5,y:.5},v).y));
 });
 
-test('fullscreen map fits entirely inside landscape, portrait and compact stages',()=>{
+test('fullscreen map stretches to both stage dimensions with no crop or margins',()=>{
  for(const [width,height] of [[1920,720],[1600,600],[320,500],[280,180],[800,0]]){
-  const fit=fitMap(width,height);assert.equal(fit.width,fit.height);
+  const fit=fitMap(width,height);assert.equal(fit.width,width);assert.equal(fit.height,height);assert.equal(fit.left,0);assert.equal(fit.top,0);
   assert.ok(fit.left>=0&&fit.top>=0);assert.ok(fit.left+fit.width<=width);assert.ok(fit.top+fit.height<=height);
   const viewport=mapViewport(width,height,true,.9);
   for(const point of [{x:0,y:0},{x:1,y:1},{x:.5,y:.5}])assert.deepEqual(toView(point,viewport),point);
+  if(width&&height){
+   const selected={lon:15,lat:23},normalized=geoToMercator(selected.lon,selected.lat);
+   const sampled=pointerToGeo(17+width*normalized.x,31+height*normalized.y,{left:17,top:31,width:fit.width,height:fit.height});
+   assert.ok(Math.abs(sampled.lon-selected.lon)<1e-9);assert.ok(Math.abs(sampled.lat-selected.lat)<1e-9);
+  }
  }
 });

@@ -62,3 +62,8 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Replaced the cropped landscape viewport with a complete centered square map, sized to the smaller available stage dimension. Letterboxing replaces crop/zoom.
 - Pointer/cursor conversion uses the full world extent in every layout; map-edge cues refer to the fitted image rectangle rather than the margins.
 - Added landscape, portrait, compact and collapsed-stage containment regression coverage. 60 tests, source checks and build passed. Actual browser rendering remains unverified in this environment.
+
+## User-requested fullscreen stretch
+- Replaced square letterboxing with independent width/height scaling across the full available map stage. Full image extent is retained; no crop or zoom.
+- Updated coordinate regression coverage to verify pointer sampling on wide and portrait stretched rectangles.
+- 60 automated checks and production build passed. Browser visual verification remains unavailable in this environment.

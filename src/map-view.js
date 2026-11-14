@@ -1,8 +1,7 @@
-// Both datasets render into square, full-world Web Mercator images.
-// Fit that entire image in the stage; unused space is outside the interactive map.
+// Expanded mode stretches the entire rendered world independently on both axes.
+// No camera crop or letterbox: normalized geography still spans the full rectangle.
 export function fitMap(width, height) {
- const size=Math.max(0,Math.min(width,height));
- return {width:size,height:size,left:(width-size)/2,top:(height-size)/2};
+ return {width:Math.max(0,width),height:Math.max(0,height),left:0,top:0};
 }
 export function mapViewport(){return {top:0,bottom:1,span:1};}
 export function toView(point, viewport){return {x:point.x,y:(point.y-viewport.top)/viewport.span};}
