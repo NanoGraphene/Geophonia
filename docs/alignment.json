@@ -1,0 +1,144 @@
+{
+  "method": "Empirical full-image equirectangular alignment; compare rendered grayscale land with independent Natural Earth 1:110m land geometry. Exclude 5 source pixels around geometry boundaries and latitudes beyond 80 degrees. Not authoritative CRS metadata.",
+  "agreement": 0.9944188384736384,
+  "comparisonPixelCount": 1619197,
+  "checkpoints": [
+    {
+      "checkpoint": "Sahara",
+      "longitude": 15,
+      "latitude": 23,
+      "pixel": [
+        1109,
+        381
+      ],
+      "rgb": [
+        46,
+        46,
+        45
+      ],
+      "geometryLand": true,
+      "renderedGrayLand": true,
+      "agrees": true
+    },
+    {
+      "checkpoint": "Australia",
+      "longitude": 135,
+      "latitude": -25,
+      "pixel": [
+        1792,
+        654
+      ],
+      "rgb": [
+        50,
+        50,
+        49
+      ],
+      "geometryLand": true,
+      "renderedGrayLand": true,
+      "agrees": true
+    },
+    {
+      "checkpoint": "Greenland",
+      "longitude": -42,
+      "latitude": 72,
+      "pixel": [
+        785,
+        102
+      ],
+      "rgb": [
+        49,
+        49,
+        50
+      ],
+      "geometryLand": true,
+      "renderedGrayLand": true,
+      "agrees": true
+    },
+    {
+      "checkpoint": "South America",
+      "longitude": -60,
+      "latitude": -15,
+      "pixel": [
+        682,
+        597
+      ],
+      "rgb": [
+        55,
+        55,
+        55
+      ],
+      "geometryLand": true,
+      "renderedGrayLand": true,
+      "agrees": true
+    },
+    {
+      "checkpoint": "North Pacific",
+      "longitude": -150,
+      "latitude": 25,
+      "pixel": [
+        170,
+        369
+      ],
+      "rgb": [
+        10,
+        11,
+        0
+      ],
+      "geometryLand": false,
+      "renderedGrayLand": false,
+      "agrees": true
+    },
+    {
+      "checkpoint": "South Atlantic",
+      "longitude": -15,
+      "latitude": -25,
+      "pixel": [
+        938,
+        654
+      ],
+      "rgb": [
+        25,
+        19,
+        0
+      ],
+      "geometryLand": false,
+      "renderedGrayLand": false,
+      "agrees": true
+    },
+    {
+      "checkpoint": "Indian Ocean",
+      "longitude": 75,
+      "latitude": -25,
+      "pixel": [
+        1450,
+        654
+      ],
+      "rgb": [
+        145,
+        109,
+        0
+      ],
+      "geometryLand": false,
+      "renderedGrayLand": false,
+      "agrees": true
+    },
+    {
+      "checkpoint": "North America",
+      "longitude": -105,
+      "latitude": 40,
+      "pixel": [
+        426,
+        284
+      ],
+      "rgb": [
+        48,
+        48,
+        48
+      ],
+      "geometryLand": true,
+      "renderedGrayLand": true,
+      "agrees": true
+    }
+  ],
+  "naturalEarthSha256": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+}
