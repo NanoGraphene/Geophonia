@@ -1,6 +1,7 @@
 import './styles.css';
 import { formatLocation, geoToMercator, geoToSource, moveLocation, pointerToGeo, mercatorToGeo, MAX_LAT } from './coordinates.js';
 import { createStore, START_LOCATION } from './state.js';
+import { canUseBrowserFullscreen, enterBrowserFullscreen } from './fullscreen.js';
 import { DATASETS, sampleDataset, createSelectionGate } from './datasets.js';
 import { mapViewport, toView, fromView } from './map-view.js';
 import { loadSource } from './sources.js';
@@ -248,6 +249,10 @@ async function initialize(id = pendingDataset) {
     source = candidate; $('frame').src = image.src; $('frame').alt = DATASETS[id].alt;
     $('source-link').href = source.manifest.sourcePage; $('credit-text').textContent = source.manifest.credit;
     $('manifest-link').href = DATASETS[id].manifest;
+    $('original-frame-link').href = source.manifest.frames[0].original;
+    $('asset-kind').textContent = `Full-resolution NASA rendered frame · ${source.manifest.width} × ${source.manifest.height} · image-derived values`;
+    $('provenance-note').textContent = id === 'svs-5147' ? 'The NASA/GMAO logo and timestamp are embedded in NASA’s original 2048 × 1024 animation frame. This is not the thumbnail, and it is not a raw model data grid. Logo/date regions are excluded from sampling.' : 'This full-resolution ocean frame is a rendered scientific visualization, not a raw model grid.';
+    $('provenance-link').hidden = id !== 'svs-5147';
     $('source-legend').src = source.manifest.legend.local;
     $('source-legend').alt = id === 'svs-5147' ? 'NASA near-surface temperature colorbar, minus 40 to plus 40 degrees Celsius. Application values are visual estimates.' : 'NASA sea surface temperature source colorbar, 0 to 32 degrees Celsius. Application values are visual estimates.';
     $('dataset-description').textContent = `${source.manifest.title}. ${source.manifest.representedInterval} ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
@@ -292,24 +297,45 @@ function layoutMap(){
  boundaryTracker.reset();
 }
 const panel=$('map-panel'), placeholder=document.createComment('map panel position');panel.before(placeholder);
+async function requestFullscreenForMap(){
+ const result=await enterBrowserFullscreen(document,$('expanded-dialog'));
+ if(!expanded){if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});return;}
+ $('expanded-status').textContent=result.message;
+ syncFullscreenControls(); layoutMap();render(store.get());
+}
+function syncFullscreenControls(){
+ const entered=document.fullscreenElement===$('expanded-dialog');
+ $('browser-fullscreen').disabled=!entered&&!canUseBrowserFullscreen(document,$('expanded-dialog'));
+ $('browser-fullscreen').textContent=entered?'Exit fullscreen':'Enter browser fullscreen';
+}
 $('expand-map').addEventListener('click',()=>{
  pointerInside=false; expanded=true; $('expanded-content').append(panel); $('expanded-dialog').showModal();
- document.body.classList.add('map-expanded'); layoutMap(); render(store.get()); $('map').focus();
+ document.body.classList.add('map-expanded');
+ $('expanded-status').textContent='Expanded map view. Requesting browser fullscreen…';
+ syncFullscreenControls();layoutMap();render(store.get());$('map').focus();
+ // Request during the original click gesture; restrictions fall back to the expanded dialog.
+ requestFullscreenForMap();
 });
 function closeExpanded(){
- pointerInside=false;
+ if(!expanded)return;
+ pointerInside=false;expanded=false;
  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
- expanded=false; placeholder.after(panel); $('expanded-dialog').close();
- document.body.classList.remove('map-expanded'); layoutMap(); render(store.get()); $('expand-map').focus();
+ placeholder.after(panel);$('expanded-dialog').close();
+ document.body.classList.remove('map-expanded');layoutMap();render(store.get());$('expand-map').focus();
+ silence('Expanded map closed. Audio paused.');
 }
 $('close-expanded').addEventListener('click',closeExpanded);
-$('expanded-dialog').addEventListener('cancel',event=>{event.preventDefault();silence();closeExpanded();});
+$('expanded-dialog').addEventListener('cancel',event=>{event.preventDefault();closeExpanded();});
 $('expanded-audio').addEventListener('click',()=>$('start-audio').click());
 $('expanded-silence').addEventListener('click',()=>silence());
 $('browser-fullscreen').addEventListener('click',async()=>{
- try{if(document.fullscreenElement)await document.exitFullscreen();else await $('expanded-dialog').requestFullscreen();}
- catch{announce('Browser fullscreen is unavailable. Expanded map remains available.',true);}
+ if(document.fullscreenElement){try{await document.exitFullscreen();}catch{$('expanded-status').textContent='Could not exit browser fullscreen. Use the browser Escape key.';}}
+ else requestFullscreenForMap();
 });
-document.addEventListener('fullscreenchange',()=>{layoutMap();render(store.get());if(!document.fullscreenElement)silence('Browser fullscreen exited. Audio paused.');});
+document.addEventListener('fullscreenchange',()=>{
+ syncFullscreenControls();
+ if(!document.fullscreenElement&&expanded){closeExpanded();return;}
+ layoutMap();render(store.get());
+});
 new ResizeObserver(()=>{layoutMap();render(store.get());}).observe($('map-stage'));
 render(store.get()); initialize(); initializeGeography();

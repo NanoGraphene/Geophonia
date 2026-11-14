@@ -1,0 +1,26 @@
+{
+  "sourceURL": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005147/frames/2048x1024_2x1_12p/MC01_stage3_GMAO_near_surface_temperature_2048x1024_en-hwtool/00000001.png",
+  "sourcePage": "https://svs.gsfc.nasa.gov/5147/",
+  "width": 2048,
+  "height": 1024,
+  "classification": "Full-resolution rendered PNG animation frame, not raw model measurements and not a thumbnail",
+  "embeddedDecorations": "NASA/GMAO logos at top left and scientific timestamp at bottom left are present in the original full-resolution frame. Excluded from image sampling.",
+  "originalSha256": "025243a704a65148c15ce0f91577142a9ddc6534afa8fdefa7666c89e6dc1555",
+  "localPngSha256": "7c7808f9eb367139c478edb7320e8e2f27b31718c3472da34de065ca870fd0c0",
+  "decodedRgbSha256": "5b922e46362f6afe7ca7ebb943dde746a5d5d67a994d88ffd83e465a71d2b950",
+  "localDecodedPixelsMatchOriginal": true,
+  "otherListedAssets": {
+    "printPreview": [
+      1024,
+      512
+    ],
+    "searchPreview": [
+      320,
+      180
+    ],
+    "thumbnail": [
+      80,
+      40
+    ]
+  }
+}

@@ -50,3 +50,10 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 - Added Sahara/Atlantic test buttons and a dataset selector retaining the ocean resource. Real temperature patches verify land and water samples.
 - Versioned loading clears previous samples, prevents stale commits and supports failed-source retry. This does not implement temporal navigation yet.
 - 55 automated tests, source checks and production build passed. Browser fullscreen/focus/layout, listening and screen-reader verification remain unverified because the managed browser tool is unavailable.
+
+## Fullscreen/provenance correction
+- Explicit fixed/inset modal layout and absolute map inside a separately sized stage remove fragile intrinsic image sizing.
+- Expand requests native fullscreen on the user gesture when allowed; capability checks, actual fullscreen state, visible fallback messages and a standalone-app link handle embedded restrictions.
+- Native fullscreen exit restores the standard view and pauses sound; late request completion after dialog close exits fullscreen.
+- Re-downloaded NASA temperature frame: original source hash and all decoded RGB pixels match. Confirmed 2048×1024 full sequence image; logo/date are embedded in that original, not evidence of a thumbnail.
+- Added source-image link and image-vs-raw-data provenance in the interface. 59 automated checks and production build passed. Browser fullscreen/layout reproduction remains unverified because the managed browser-control tool is unavailable.
