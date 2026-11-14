@@ -1,6 +1,6 @@
 {
   "name": "earth-information-jukebox",
-  "version": "0.4.8",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,15 +8,9 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test",
-    "check": "node scripts/check.mjs",
-    "predev": "node scripts/prepare-neural-assets.mjs",
-    "prebuild": "node scripts/prepare-neural-assets.mjs",
-    "voice:verify": "node --use-env-proxy scripts/verify-natural-voice.mjs"
+    "check": "node scripts/check.mjs"
   },
   "devDependencies": {
     "vite": "^7.2.2"
-  },
-  "dependencies": {
-    "onnxruntime-web": "1.26.0"
   }
 }

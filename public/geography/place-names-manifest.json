@@ -1,0 +1,26 @@
+{
+  "source": "Natural Earth",
+  "revision": "ca96624a56bd078437bca8184e78163e5039ad19",
+  "license": "Public domain",
+  "sources": [
+    {
+      "kind": "countries",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_50m_admin_0_countries.geojson",
+      "sha256": "3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb"
+    },
+    {
+      "kind": "marine",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_geography_marine_polys.geojson",
+      "sha256": "53f865e8ffa966cdd402145c82c5cd14ee7ce974cd0eb9a3f59f03a4cfd2d66c"
+    },
+    {
+      "kind": "lakes",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_50m_lakes.geojson",
+      "sha256": "d350b75978b26fe839b797c2c529b2fb8f47fb3983c03f4964e36d5df9378a52"
+    }
+  ],
+  "url": "./geography/place-names.json",
+  "sha256": "6823718ee0a9cc2fefa2ac13d169e201259a0292e259f194d7a986991dc9c0ac",
+  "regions": 2276,
+  "limits": "Approximate generalized present-day boundaries. No historical or authoritative border claims. Coordinates rounded to 0.001 degrees; polygon holes retained. Local point-in-polygon lookup; no reverse-geocoding service. Named inland lakes take priority over countries, and smaller marine areas take priority over oceans. Unmatched locations are reported explicitly."
+}

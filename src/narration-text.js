@@ -1,13 +1,25 @@
-// Fresh stable-based narration; intentionally independent of the test TTS branch.
-export function locationText({lat,lon}){
- return `${Math.abs(lat).toFixed(2)} degrees ${lat<0?'south':'north'}, ${Math.abs(lon).toFixed(2)} degrees ${lon<0?'west':'east'}`;
+export function locationText({lat,lon}) {
+  return `${Math.abs(lat).toFixed(2)} degrees ${lat<0?'south':'north'}, ${Math.abs(lon).toFixed(2)} degrees ${lon<0?'west':'east'}`;
 }
-export function describeCurrent(state){
- if(!state.sample)return 'The selected dataset is not ready yet.';
- const when=new Intl.DateTimeFormat('en-GB',{dateStyle:'long',timeStyle:'short',timeZone:'UTC'}).format(new Date(state.timestamp));
- const position=locationText(state.location);
- const prefix=`${when} UTC. At ${position}. `;
- if(state.sample.value==null)return prefix+'No interpretable visual sample is available here.';
- return prefix+`The temperature color is ${Math.round(state.sample.value*100)} out of one hundred. ${state.dataset==='svs-3912'?'Visual trace coverage':'Matched color coverage'} is ${Math.round(state.sample.density*100)} percent. These are image estimates, not measured temperatures.`;
+export function placeText(place,location,status='ready') {
+  if(place)return place.name+'.';
+  if(status==='loading')return 'Place names are still loading.';
+  if(status==='error')return 'Place names are unavailable. '+locationText(location)+'.';
+  return 'No country, ocean or sea name is mapped here. '+locationText(location)+'.';
 }
-export function describeDataset(manifest){return `${manifest.title}. A NASA visualization explored through sound. Higher color position makes a higher note. Coverage controls loudness. A short knock marks entering land, and a droplet marks entering water. Geographic boundaries are approximate.`;}
+export function temperatureEstimate(sample,manifest) {
+  const scale=manifest?.valueScale;
+  if(sample?.value==null||!Number.isFinite(sample.value)||!scale)return null;
+  const fraction=Math.max(0,Math.min(1,sample.value));
+  return Math.round(scale.min+fraction*(scale.max-scale.min));
+}
+export function valueText(state,manifest) {
+  if(!state.sample)return 'The selected frame is still loading. No value is available yet.';
+  const value=temperatureEstimate(state.sample,manifest);
+  if(value===null)return 'No interpretable temperature value is available at this location.';
+  return `Approximately ${Object.is(value,-0)?0:value} degrees Celsius. An estimate from image color.`;
+}
+export function dateText(timestamp) {
+  if(!timestamp||!Number.isFinite(Date.parse(timestamp)))return 'The selected frame is still loading. No date is available yet.';
+  return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23',timeZone:'UTC'}).format(new Date(timestamp))+' UTC.';
+}

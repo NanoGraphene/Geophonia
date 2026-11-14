@@ -4,14 +4,16 @@ import { createStore, START_LOCATION } from './state.js';
 import { canUseBrowserFullscreen, enterBrowserFullscreen } from './fullscreen.js';
 import { DATASETS, sampleDataset, createSelectionGate } from './datasets.js';
 import { fitMap, mapViewport, toView, fromView } from './map-view.js';
-import { loadSource } from './sources.js';
+import { loadSource, getManifest } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
-import { NaturalVoice } from './natural-voice.js';
-import { locationText, describeCurrent, describeDataset } from './narration-text.js';
+import { InstantSpeech } from './instant-speech.js';
+import { loadPlaceNames } from './place-names.js';
+import { stepFrame, keyboardCommand } from './timeline.js';
+import { placeText, valueText, dateText, temperatureEstimate } from './narration-text.js';
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
@@ -21,44 +23,76 @@ const boundaryTracker = new BoundaryTracker();
 const selectionGate = createSelectionGate();
 let pendingDataset = 'svs-3912', expanded = false;
 let viewport = mapViewport(1,1,false);
-const narrator = new NaturalVoice({
-  createWorker: () => new Worker(new URL('./neural/worker.js', document.baseURI)),
+let placeLookup = null, placeStatus = 'loading', pendingIndex = 0;
+const catalogs = new Map();
+const narrator = new InstantSpeech({
   onActive: active => audio.setNarrationActive(active),
-  onState: (state, message) => {
-    $('voice-status').textContent = message;
-    $('voice-load').disabled = state === 'loading' || narrator.loaded;
-    $('voice-load').textContent = narrator.loaded ? 'Natural voice loaded' : state === 'loading' ? 'Loading natural voice…' : 'Load natural voice';
-    syncVoiceControls();
+  onStatus: message => { $('voice-status').textContent = message; $('expanded-voice-status').textContent = message; },
+  onVoices: (voices, selected) => {
+    $('voice-choice').replaceChildren();
+    if (!voices.length) $('voice-choice').add(new Option('System default · voices still loading', ''));
+    for (const voice of voices) $('voice-choice').add(new Option(`${voice.name} · ${voice.lang}`, voice.voiceURI));
+    $('voice-choice').value = selected;
   }
 });
-function syncVoiceControls() {
-  const browser = $('voice-engine').value === 'browser';
-  const ready = (browser ? !!globalThis.speechSynthesis : narrator.loaded) && !!source;
-  for (const button of document.querySelectorAll('[data-read]')) button.disabled = !ready;
-  $('voice-load').hidden = browser;
-  $('voice-choice').disabled = browser;
-}
-function stopNarration() {
-  $('voice-sample').pause(); narrator.stop();
-}
+function stopNarration() { narrator.stop(); }
 function readSelection(kind) {
-  if (!source) return;
-  $('voice-sample').pause(); stopLegend();
-  const text = kind === 'location' ? `Selected location: ${locationText(store.get().location)}.` : kind === 'dataset' ? describeDataset(source.manifest) : describeCurrent(store.get());
-  $('voice-transcript').textContent = text;
-  narrator.read(text, { engine: $('voice-engine').value, voice: $('voice-choice').value, speed: Number($('voice-speed').value) });
+  stopLegend();
+  const state = store.get();
+  const text = kind === 'place' ? placeText(placeLookup?.(state.location), state.location, placeStatus)
+    : state.validity === 'load-error' ? 'The selected frame could not load. Retry the frame or select another date.'
+    : kind === 'date' ? dateText(source?.frame.timestamp)
+    : valueText(state, source?.manifest);
+  $('voice-transcript').textContent = text; $('expanded-voice-transcript').textContent = text;
+  narrator.speak(text);
 }
-$('voice-load').addEventListener('click', () => narrator.load(new URL('./runtime/', document.baseURI).href).catch(() => {}));
-$('voice-engine').addEventListener('change', () => {
-  stopNarration(); syncVoiceControls();
-  $('voice-status').textContent = $('voice-engine').value === 'browser' ? 'Browser fallback selected. Voice quality depends on your device.' : narrator.loaded ? 'Natural voice ready.' : 'Load the natural voice when ready.';
-});
 for (const button of document.querySelectorAll('[data-read]')) button.addEventListener('click', () => readSelection(button.dataset.read));
-$('voice-stop').addEventListener('click', stopNarration);
-for (const id of ['voice-choice', 'voice-speed']) $(id).addEventListener('change', stopNarration);
-$('voice-sample').addEventListener('play', () => { narrator.stop(); audio.setNarrationActive(true); });
-$('voice-sample').volume = store.get().audio.volume;
-for (const event of ['pause', 'ended', 'error']) $('voice-sample').addEventListener(event, () => audio.setNarrationActive(false));
+$('voice-stop').addEventListener('click', () => {stopNarration();$('voice-status').textContent='Speech stopped.';});
+$('voice-enabled').addEventListener('change', event => {
+  narrator.setEnabled(event.target.checked);
+  $('voice-status').textContent = event.target.checked ? 'Ready · 1 place · 2 value · 3 date' : 'Spoken shortcuts are off.';
+});
+$('voice-choice').addEventListener('change', event => narrator.selectVoice(event.target.value));
+$('voice-speed').addEventListener('change', event => { narrator.stop(); narrator.rate=Number(event.target.value); });
+if (!globalThis.speechSynthesis) $('voice-status').textContent='Speech is unavailable in this browser. Readings remain available as text.';
+async function initializePlaces() {
+  if ($('retry-places').disabled) return;
+  placeStatus='loading';$('retry-places').disabled=true;$('retry-places').hidden=true;
+  try { placeLookup=await loadPlaceNames();placeStatus='ready'; }
+  catch(error){placeStatus='error';$('retry-places').hidden=false;console.error(error);}
+  finally{$('retry-places').disabled=false;render(store.get());}
+}
+$('retry-places').addEventListener('click',initializePlaces);
+function syncTimeline() {
+  const manifest=catalogs.get(pendingDataset),count=manifest?.frames.length??0;
+  for(const id of ['timeline','expanded-timeline']) {
+    $(id).min=0;$(id).max=Math.max(0,count-1);$(id).value=pendingIndex;$(id).disabled=count<2;
+    $(id).setAttribute('aria-valuetext', count ? `${dateText(manifest.frames[pendingIndex]?.timestamp)} Frame ${pendingIndex+1} of ${count}${source?'':' · loading'}` : 'Loading available dates');
+  }
+  const label=count ? `${dateText(manifest.frames[pendingIndex]?.timestamp)} · ${pendingIndex+1} of ${count}${source?'':' · loading'}` : 'Loading available dates…';
+  $('timeline-date').textContent=label;$('expanded-timeline-date').textContent=label;
+  $('time-previous').disabled=!count||pendingIndex<=0;$('time-next').disabled=!count||pendingIndex>=count-1;
+}
+function changeTime(index) {
+  const count=catalogs.get(pendingDataset)?.frames.length??0;
+  const target=stepFrame(0,Number(index),count);
+  if(!count||target===pendingIndex)return;
+  initialize(pendingDataset,target);
+}
+for(const id of ['timeline','expanded-timeline']) $(id).addEventListener('input',event=>changeTime(event.target.value));
+$('time-previous').addEventListener('click',()=>changeTime(pendingIndex-1));
+$('time-next').addEventListener('click',()=>changeTime(pendingIndex+1));
+document.addEventListener('keydown',event=>{
+  const target=event.target;
+  const timeline=target.id==='timeline'||target.id==='expanded-timeline';
+  const editing=!!target.closest('textarea, select, input:not([type="range"]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
+  const command=keyboardCommand(event,{editing,timeline,speech:narrator.enabled,otherRange:target.matches('input[type="range"]')&&!timeline});
+  if(!command)return;
+  event.preventDefault();
+  if(['place','value','date'].includes(command)){readSelection(command);return;}
+  const count=catalogs.get(pendingDataset)?.frames.length??0;
+  changeTime(command==='first'?0:command==='last'?count-1:pendingIndex+(command==='previous'?-1:1));
+});
 function announce(text, immediate = false) {
   clearTimeout(spatialTimer);
   spatialTimer = setTimeout(() => { $('status').textContent = text; }, immediate ? 0 : 450);
@@ -72,7 +106,7 @@ function sampleDescription(state) {
   return `Image-derived temperature-color position ${Math.round(state.sample.value * 100)} of 100. ${DATASETS[state.dataset].density} ${Math.round(state.sample.density * 100)} percent.`;
 }
 function render(state) {
-  syncVoiceControls();
+  syncTimeline();
   const projected = geoToMercator(state.location.lon, state.location.lat);
   if(projected.y < viewport.top || projected.y > viewport.bottom) layoutMap();
   const point = toView(projected, viewport);
@@ -82,12 +116,16 @@ function render(state) {
   $('feature-label').textContent = definition.feature;
   $('density-label').textContent = definition.density;
   $('session-topic').textContent = definition.topic;
-  const timestamp = source?.manifest.frames[0].timestamp;
+  const timestamp = source?.frame.timestamp;
   const timeLabel = timestamp ? new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(timestamp))+' UTC' : 'Dataset not ready';
   $('selected-time').textContent = timeLabel; $('session-date').textContent = timeLabel;
   $('expanded-readout').textContent = `${formatLocation(state.location)} · ${state.surface} · ${state.sample?.value != null ? Math.round(state.sample.value*100)+'/100 visual' : 'No visual sample'}`;
   $('expanded-audio').textContent = state.audio.enabled ? 'Pause audio' : 'Start audio';
   $('location').textContent = formatLocation(state.location);
+  const namedPlace=placeLookup?.(state.location);
+  $('place-name').textContent=namedPlace?.name ?? (placeStatus==='loading'?'Loading place names…':placeStatus==='error'?'Place names unavailable':'No mapped place name');
+  const temperature=temperatureEstimate(state.sample,source?.manifest);
+  $('temperature-estimate').textContent=temperature===null?'—':`≈ ${temperature} °C`;
   // Do not replace a user's partially typed coordinate while editing the form.
   if (document.activeElement !== $('latitude')) $('latitude').value = state.location.lat.toFixed(2);
   if (document.activeElement !== $('longitude')) $('longitude').value = state.location.lon.toFixed(2);
@@ -126,7 +164,6 @@ function stopLegend() {
   clearTimeout(legendTimer); audio.cancelLegend(); legendPlaying = false; $('legend-status').textContent = '';
 }
 function select(location, immediate = false, mode = 'relocate') {
-  stopNarration();
   if (legendPlaying) stopLegend();
   active = true;
   const previous=store.get().location;
@@ -147,6 +184,7 @@ function select(location, immediate = false, mode = 'relocate') {
 }
 function silence(message = 'All application audio is silent.') {
   stopNarration();
+  $('voice-status').textContent='All audio is silent. Press 1, 2 or 3 for another reading.';
   active = false; starting = false; pointerInside = false; stopLegend(); audio.stop();
   boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
   store.update({ audio: { ...store.get().audio, enabled: false } });
@@ -155,7 +193,7 @@ function silence(message = 'All application audio is silent.') {
 audio.onInterrupted = () => silence('Audio was interrupted. Select Start audio to resume.');
 $('map').addEventListener('keydown', event => {
   if (event.altKey || event.metaKey || event.ctrlKey) return;
-  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+  if (['ArrowUp', 'ArrowDown'].includes(event.key) || (event.shiftKey && ['ArrowLeft','ArrowRight'].includes(event.key))) {
     event.preventDefault(); select(moveLocation(store.get().location, event.key, store.get().spatialStep), false, 'keyboard');
   } else if (event.key === 'Home') {
     event.preventDefault(); select({ ...START_LOCATION }, true);
@@ -218,7 +256,7 @@ $('radius').addEventListener('change', event => {
 });
 $('volume').addEventListener('input', event => {
   stopLegend(); const volume = Number(event.target.value) / 100;
-  narrator.setVolume(volume); $('voice-sample').volume = volume;
+  narrator.setVolume(volume);
   $('volume-value').textContent = `${Math.round(volume * 100)}%`;
   store.update({ audio: { ...store.get().audio, volume } });
 });
@@ -290,32 +328,35 @@ async function initializeGeography() {
     console.error(error);
   } finally { $('retry-geography').disabled = false; }
 }
-async function initialize(id = pendingDataset) {
+async function initialize(id = pendingDataset, index = pendingIndex) {
   stopNarration();
-  pendingDataset = id; const ticket = selectionGate.next();
+  pendingDataset = id; pendingIndex = index; const ticket = selectionGate.next();
   active = false; stopLegend(); audio.cancelTones(); audio.fade(); source = null;
   store.update({sample:null,validity:'loading'});
   $('retry').hidden = true; $('map').setAttribute('aria-busy', 'true');
   $('load-message').hidden = false; $('load-message').textContent = 'Loading NASA dataset…';
   for (const b of document.querySelectorAll('[data-legend]')) b.disabled = true;
   try {
-    const candidate = await loadSource(id);
-    const image = new Image(); image.src = candidate.manifest.frames[0].display; await image.decode();
+    const manifest = await getManifest(id);
     if (!selectionGate.current(ticket)) return;
-    source = candidate; $('frame').src = image.src; $('frame').alt = DATASETS[id].alt;
+    catalogs.set(id,manifest); syncTimeline();
+    const candidate = await loadSource(id,index);
+    if (!selectionGate.current(ticket)) return;
+    source = candidate; $('frame').src = source.frame.display; $('frame').alt = DATASETS[id].alt;
     $('source-link').href = source.manifest.sourcePage; $('credit-text').textContent = source.manifest.credit;
     $('manifest-link').href = DATASETS[id].manifest;
-    $('original-frame-link').href = source.manifest.frames[0].original;
+    $('original-frame-link').href = source.frame.original;
     $('asset-kind').textContent = `Full-resolution NASA rendered frame · ${source.manifest.width} × ${source.manifest.height} · image-derived values`;
     $('provenance-note').textContent = id === 'svs-5147' ? 'The NASA/GMAO logo and timestamp are embedded in NASA’s original 2048 × 1024 animation frame. This is not the thumbnail, and it is not a raw model data grid. Logo/date regions are excluded from sampling.' : 'This full-resolution ocean frame is a rendered scientific visualization, not a raw model grid.';
     $('provenance-link').hidden = id !== 'svs-5147';
     $('source-legend').src = source.manifest.legend.local;
     $('source-legend').alt = id === 'svs-5147' ? 'NASA near-surface temperature colorbar, minus 40 to plus 40 degrees Celsius. Application values are visual estimates.' : 'NASA sea surface temperature source colorbar, 0 to 32 degrees Celsius. Application values are visual estimates.';
     $('dataset-description').textContent = `${source.manifest.title}. ${source.manifest.representedInterval} ${source.manifest.limitations ?? 'Ocean traces are colored by temperature; gaps are not scientific zeros.'}`;
-    $('matching-description').textContent = source.manifest.matching === 'rgb' ? 'This non-monotonic temperature palette is matched in literal RGB space, not hue. Terrain shading and repeated colors make values approximate; no scientific Celsius values are reported. Annotation rectangles are masked. Coverage is the fraction of neighborhood pixels matching the source legend.' : 'Ocean traces use chromatic source-palette matching. Mean visual palette position controls pitch; trace coverage controls amplitude. These are image-derived features, not measured temperature or current speed.';
+    $('matching-description').textContent = source.manifest.matching === 'rgb' ? 'This non-monotonic temperature palette is matched in literal RGB space, not hue. Terrain shading and repeated colors make values approximate. The Celsius readout is a whole-degree image estimate, not a raw model-grid measurement. Annotation rectangles are masked. Coverage is the fraction of neighborhood pixels matching the source legend.' : 'Ocean traces use chromatic source-palette matching. Mean visual palette position controls pitch; trace coverage controls amplitude. These are image-derived features, not measured temperature or current speed.';
     $('palette-track').style.background = source.manifest.matching === 'rgb' ? `linear-gradient(90deg,${source.palette.map(c=>'rgb('+c.join(',')+')').join(',')})` : '';
     $('load-message').hidden = true; $('map').setAttribute('aria-busy','false');
-    resample(store.get().location,{dataset:id,variable:source.manifest.variable??'temperature-color',timestamp:source.manifest.frames[0].timestamp});
+    active = store.get().audio.enabled; surfaceTracker?.reset(store.get().location);
+    resample(store.get().location,{dataset:id,variable:source.manifest.variable??'temperature-color',timeIndex:index,timestamp:source.frame.timestamp});
     for (const b of document.querySelectorAll('[data-legend]')) b.disabled = !audioSupported;
     announce(`${source.manifest.title} ready. ${sampleDescription(store.get())}`,true);
     if (!geography && store.get().geographyStatus !== 'loading') await initializeGeography();
@@ -328,11 +369,11 @@ async function initialize(id = pendingDataset) {
   }
 }
 $('retry').addEventListener('click',()=>initialize());
-$('dataset').addEventListener('change',event=>initialize(event.target.value));
+$('dataset').addEventListener('change',event=>initialize(event.target.value,0));
 for(const [id,location] of [['land-test',{lon:15,lat:23}],['water-test',{lon:-45,lat:30}]]) {
  $(id).addEventListener('click',()=>{
   select(location,true);
-  if(pendingDataset!=='svs-5147'){$('dataset').value='svs-5147';initialize('svs-5147');}
+  if(pendingDataset!=='svs-5147'){$('dataset').value='svs-5147';initialize('svs-5147',0);}
  });
 }
 $('retry-geography').addEventListener('click', initializeGeography);
@@ -394,4 +435,4 @@ document.addEventListener('fullscreenchange',()=>{
  layoutMap();render(store.get());
 });
 new ResizeObserver(()=>{layoutMap();render(store.get());}).observe($('map-stage'));
-render(store.get()); initialize(); initializeGeography();
+render(store.get()); initialize(); initializeGeography(); initializePlaces();

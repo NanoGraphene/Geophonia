@@ -1,20 +1,24 @@
 import { DATASETS } from './datasets.js';
 import { preparePalette } from './sampling.js';
-export async function loadSource(id = 'svs-3912') {
-  const response = await fetch(DATASETS[id].manifest);
-  if (!response.ok) throw new Error(`Source manifest failed (${response.status}).`);
-  const manifest = await response.json();
-  const image = new Image();
-  image.src = manifest.frames[0].local;
-  await image.decode();
-  if (image.naturalWidth !== manifest.width || image.naturalHeight !== manifest.height) throw new Error('Source dimensions do not match the manifest.');
-  const canvas = document.createElement('canvas');
-  canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  context.drawImage(image, 0, 0);
-  const paletteResponse = await fetch(DATASETS[id].palette);
-  if (!paletteResponse.ok) throw new Error('Source palette could not load.');
-  const rgb = (await paletteResponse.json()).rgb;
-  const palette = manifest.matching === 'rgb' ? rgb : preparePalette(rgb);
-  return { manifest, palette, imageData: context.getImageData(0, 0, canvas.width, canvas.height) };
+import { frameCache } from './timeline.js';
+const manifests=new Map();
+export function getManifest(id) {
+  if(!DATASETS[id])return Promise.reject(new Error('Unknown dataset.'));
+  if(!manifests.has(id))manifests.set(id,fetch(DATASETS[id].manifest).then(response=>{
+    if(!response.ok)throw new Error(`Source manifest failed (${response.status}).`);
+    return response.json();
+  }).catch(error=>{manifests.delete(id);throw error;}));
+  return manifests.get(id);
 }
+export const loadSource=frameCache(async(id='svs-3912',index=0)=>{
+  const manifest=await getManifest(id),frame=manifest.frames[index];
+  if(!Number.isInteger(index)||!frame)throw new Error('Selected frame is unavailable.');
+  const image=new Image(),display=new Image();image.src=frame.local;display.src=frame.display;
+  await Promise.all([image.decode(),display.decode()]);
+  if(image.naturalWidth!==manifest.width||image.naturalHeight!==manifest.height)throw new Error('Source dimensions do not match the manifest.');
+  const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(image,0,0);
+  const response=await fetch(DATASETS[id].palette);if(!response.ok)throw new Error('Source palette could not load.');
+  const rgb=(await response.json()).rgb;
+  return {manifest,frame,index,palette:manifest.matching==='rgb'?rgb:preparePalette(rgb),imageData:context.getImageData(0,0,canvas.width,canvas.height)};
+});

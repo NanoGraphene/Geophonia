@@ -84,3 +84,11 @@ SVS 5533 rejected for changing pollutant strips and absent verified per-frame da
 Implemented independently on `natural-tts` from stable `3a74a65`, without merging the experimental TTS branch. Kitten Nano INT8 replaces browser speech as the default narration engine, with an explicit fallback option, eight voices, speed selection, actual preview audio and local worker inference. Readings reflect the current frozen frame and explicitly identify image-derived estimates. Timeline work is not included. Exact model/SDK revisions and verification are recorded in `public/neural/provenance.json` and `docs/natural-voice-verification.json`.
 
 67 automated checks and real Node/WASM inference pass. Browser/listening checks remain pending because browser-control tooling is unavailable.
+
+## 0.5.0 — Instant speech shortcuts and restored time selection
+
+Supersedes the Kitten model experiment with zero application-model downloads and browser-native speech. Natural/enhanced English voices are preferred where installed/available; device-specific quality is not guaranteed. 1 reads country/ocean/sea, 2 estimated Celsius temperature, 3 the selected UTC date/time. Checkbox, voice/speed controls and expanded buttons are included. Local pinned Natural Earth polygons add geographic names. Approximate temperature is explicitly distinguished from raw scientific measurements.
+
+Restores the verified three-frame sequences as assets only and implements time loading/controls in this stable-based branch. Left/Right changes time; Shift+Left/Right moves spatially on the map. The standard/expanded sliders share requested frame state; original-resolution samples, display image and date commit together behind latest-request guards. No old TTS branch is merged.
+
+82 automated checks pass. Browser/listening/layout verification remains pending because the managed browser-control tool is unavailable.

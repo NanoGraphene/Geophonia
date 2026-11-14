@@ -1,6 +1,6 @@
 # Visual features and sound
 
-This prototype uses a single attributed NASA visualization frame, not underlying model measurements. It reports no temperature in °C and makes no claim that a black pixel is a valid zero or a scientific missing flag.
+The current prototype uses three attributed NASA visualization frames per dataset, not underlying model measurements. It reports a whole-degree approximate temperature in °C estimated from source palette position, and retains the normalized color feature for audio. A black/unmatched pixel is not a scientific zero or verified missing flag.
 
 ## Coordinates and image
 
@@ -8,7 +8,7 @@ NASA frame 23000 is 2048×1024 RGB. Full image, no margins or label masks: sourc
 
 The source contains no GeoTIFF georeferencing. An independent Natural Earth 1:110m land comparison supports full-image equirectangular alignment: 99.4419% agreement on 1,619,197 pixels after excluding a five-pixel coastline neighborhood and latitudes beyond 80°. Eight geographic checkpoints agree. See `alignment.json`. Approximate alignment does not establish survey-grade coordinates. Milestone 4 adds a separately validated 1:50m land/lake mask for approximate surface cues (see below). Geographic names remain withheld; small islands and exact shorelines remain uncertain.
 
-Display is a 1536×1536 Web Mercator resampling, nearest neighbor at pixel centers. Inverse display: longitude=360u−180; latitude=atan(sinh(π(1−2v))). Latitude limited to ±85.05112878°. Source extent: ±180° longitude, ±90° latitude. No stretching or cropping is added to the square display. Pointer uses its actual bounding rectangle at event time, handling offsets and resizing. Keyboard moves in degrees; east/west wraps and latitude clamps. Cursor is stored geographically so preferences and layout do not move it.
+Display is a 1536×1536 Web Mercator resampling, nearest neighbor at pixel centers. Inverse display: longitude=360u−180; latitude=atan(sinh(π(1−2v))). Latitude limited to ±85.05112878°. Source extent: ±180° longitude, ±90° latitude. The standard display is square; expanded view stretches it independently to the stage width and height without cropping. Pointer uses its actual bounding rectangle at event time, handling offsets and resizing. Keyboard moves in degrees; east/west wraps and latitude clamps. Cursor is stored geographically so preferences and layout do not move it.
 
 ## Sampling
 
@@ -35,7 +35,7 @@ At most the two most recent crossings from a movement are queued, spaced 100 ms 
 
 Legend buttons audition entering-land and entering-water sounds individually. Reference examples pause exploration; moving/refocusing resumes it. Silence/Escape and inactive tabs cancel all voices and cues. Volume changes cancel queued notes, including zero-volume changes. Pointer exit fades the data voice; a brief crossing/exit cue may finish. No background guide remains.
 
-Automated waveform/envelope/cancellation and geographic path tests pass. Sound recognizability, loudness comfort, real browser behavior and screen-reader usability remain unverified without manual listening/browser access. No timeline or application TTS is included yet.
+Automated waveform/envelope/cancellation and geographic path tests pass. Sound recognizability, loudness comfort, real browser behavior and screen-reader usability remain unverified without manual listening/browser access. Three-frame timeline selection and instant browser speech are now included; see the 0.5.0 revision below.
 
 ## Geographic classification (milestone 4)
 
@@ -58,7 +58,7 @@ Mono patterns (panning is unnecessary):
 - Bottom: 440 then 330 Hz, same timing.
 - Corners: vertical pattern followed by horizontal pattern starting at 420 ms.
 
-Boundary patterns use the harmonic mallet envelopes described above. A preference toggles boundary cues; shorelines only modify the continuous filter. Silence, Escape and tab inactivity cancel every cue and both continuous voice groups.
+Boundary patterns use the harmonic mallet envelopes described above. A preference toggles boundary cues; shorelines play brief knock/droplet crossing cues; no continuous surface filter remains. Silence, Escape and tab inactivity cancel every cue and both continuous voice groups.
 
 ## Dataset and expanded viewport revision
 
@@ -67,3 +67,13 @@ Ocean chromatic matching remains unchanged. SVS 5147 uses literal RGB matching b
 Expanded view uses a native modal dialog and optionally the browser Fullscreen API. The existing map element is moved, not cloned. Native dialog focus containment leaves background controls inert; expanded audio controls proxy the same engine. On close, focus returns to Expand map. The full map is always visible and now stretches independently to the stage width and height at the user's request. object-fit:fill and an unconstrained map aspect ratio remove square letterboxing without cropping. The geographic viewport remains [0,1] on both Mercator axes. Pointer/cursor conversion normalizes against the actual stretched rectangle, so the displayed location, sampling and boundary cues stay aligned. Resize/expand/restore preserve latitude/longitude. Escape retains emergency silence behavior; fullscreen exit also pauses audio.
 
 Fullscreen correction supersedes the earlier two-step fullscreen description: Expand requests browser fullscreen within its click gesture when permitted. A fixed, inset modal with an independently sized flex stage and absolutely positioned map remains available when native requests fail. Capability/failure messages are visible; the standalone-app link offers a different browser context. Native fullscreen exit restores the normal view, pauses audio and returns focus. Success is never inferred merely from a resolved request promise; fullscreenElement must identify the dialog.
+
+## 0.5.0 speech shortcuts, place names and timeline
+
+1 reads a local country/marine/lake polygon name, 2 the estimated whole-degree temperature and unit, and 3 the selected frame timestamp in UTC. Speech uses the browser API immediately, preferring available natural/enhanced English voices and allowing manual selection. Spoken shortcuts can be disabled. New readings supersede old callbacks; Escape, inactive tabs and Silence cancel speech. Pointer movement preserves an explicitly requested reading of the point selected at keypress; time/dataset changes cancel it.
+
+Celsius conversion uses `manifest.valueScale`: 0–32 °C for the ocean source and −40–40 °C for land/ocean temperature. This linearly maps normalized source palette position, rounds to whole degrees and always calls the spoken value an image estimate. It does not recover authoritative source-grid temperature; non-monotonic palettes and terrain shading remain ambiguous.
+
+Natural Earth point-in-polygon lookup is separate from the surface mask. It retains holes and cut-at-antimeridian polygons, prioritizes lakes over country fill and smaller marine regions over broad oceans, and reports unknown names without guessing. Exact source revision and integrity hash: `public/geography/place-names-manifest.json`.
+
+Left/Right changes frames from the currently requested slider target, including while another frame loads. Shift+Left/Right on the map moves spatially. Both sliders track the same target; both sampling/display images must decode before the latest request can commit frame, date and value. Samples clear and sound fades during a load. Successful commits sample the current shared location and resume enabled sonification. Old responses and failures cannot overwrite a newer request. A failed current frame remains unavailable and exposes Retry. Three available dates per dataset are discrete, with no interpolation.

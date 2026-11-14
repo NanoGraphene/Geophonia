@@ -32,7 +32,7 @@
     "resampling": "nearest-neighbor at pixel centers"
   },
   "timestampTable": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/flat_ecco2_dates.txt",
-  "representedInterval": "Model averaging interval unknown; timestamp is NASA frame-table time.",
+  "representedInterval": "Frozen three-frame sequence. Read each selected frame timestamp in UTC; averaging interval unknown. Not live weather.",
   "frames": [
     {
       "frame": 23000,
@@ -41,6 +41,22 @@
       "originalSha256": "0e135b7e502f23939ac8cf198fcdd9ae6a8ee94cbe5ed35fe55b134f40980f24",
       "local": "./frames/ocean-23000.png",
       "display": "./frames/ocean-23000-mercator.png"
+    },
+    {
+      "frame": 23004,
+      "timestamp": "2007-03-25T16:07:00Z",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/frames/2048x1024_1x1_30p/orig/flat_global_ecco2_2028x1024.23004.tif",
+      "sha256": "ccbbe2dc7181b283cedd7211ed1b55e4eb5bd511f790b9f1c3d392061424fec1",
+      "local": "./frames/svs-3912-23004.webp",
+      "display": "./frames/svs-3912-23004-mercator.webp"
+    },
+    {
+      "frame": 23008,
+      "timestamp": "2007-03-25T20:15:00Z",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/frames/2048x1024_1x1_30p/orig/flat_global_ecco2_2028x1024.23008.tif",
+      "sha256": "1911dcf041335a0769d555d83bfa2a0e8e8b65c6e622b191127fc7d788267ac6",
+      "local": "./frames/svs-3912-23008.webp",
+      "display": "./frames/svs-3912-23008-mercator.webp"
     }
   ],
   "legend": {
@@ -48,7 +64,7 @@
     "local": "./frames/source-legend.png",
     "meaning": "Trace color represents sea surface temperature; visual density is not current speed.",
     "unitsInSource": "degrees Celsius",
-    "reportedUnits": "normalized visual palette position, not scientific temperature",
+    "reportedUnits": "Approximate degrees Celsius from source colorbar; normalized visual position retained for audio mapping.",
     "anchors": {
       "blue": 0,
       "green": "10\u201320",
@@ -93,5 +109,14 @@
     "patterns": "Land: 45 ms low knock; water: 85 ms high droplet; at most two recent crossings spaced 100 ms. Map-boundary patterns are separate.",
     "surfaceGuide": "Removed; no background reference tone or geography-dependent filter.",
     "synth": "Neutral harmonic data voice. Independent short crossing earcons use different harmonic profiles and pitch slides."
+  },
+  "sequenceVerification": "Three fixed-camera 2048x1024 frames, shared source palette and annotation masks; normalization fixed. Ocean times from NASA date table; temperature times transcribed from image labels. Scientific averaging intervals unverified.",
+  "valueScale": {
+    "min": 0,
+    "max": 32,
+    "unit": "degrees Celsius",
+    "symbol": "\u00b0C",
+    "variable": "Sea surface temperature",
+    "method": "Linear interpolation of position on the NASA source colorbar; rounded to whole degrees. Image-derived approximation, not a raw model-grid measurement."
   }
 }

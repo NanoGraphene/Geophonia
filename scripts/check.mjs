@@ -17,6 +17,5 @@ for(const definition of Object.values(DATASETS)){
 }
 assert.ok(html.includes('aria-live="polite"'));
 assert.ok(html.includes('id="silence"'));
-execFileSync(process.execPath,['--check','public/neural/worker.js']);
-for(const path of ['public/vendor/kittentts-web.js','public/vendor/KITTENTTS-LICENSE','public/voice-preview/kitten-bella.wav']) await access(path);
+for(const path of ['public/geography/place-names.json','public/geography/place-names-manifest.json']) await access(path);
 console.log('Syntax, UI references, accessible label targets, and local source assets checked.');
