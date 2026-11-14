@@ -1,3 +1,4 @@
+import { preparePalette } from './sampling.js';
 export async function loadSource() {
   const response = await fetch('./data/source-manifest.json');
   if (!response.ok) throw new Error(`Source manifest failed (${response.status}).`);
@@ -10,5 +11,8 @@ export async function loadSource() {
   canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
   const context = canvas.getContext('2d', { willReadFrequently: true });
   context.drawImage(image, 0, 0);
-  return { manifest, imageData: context.getImageData(0, 0, canvas.width, canvas.height) };
+  const paletteResponse = await fetch('./data/palette.json');
+  if (!paletteResponse.ok) throw new Error('Source palette could not load.');
+  const palette = preparePalette((await paletteResponse.json()).rgb);
+  return { manifest, palette, imageData: context.getImageData(0, 0, canvas.width, canvas.height) };
 }
