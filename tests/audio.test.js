@@ -117,14 +117,14 @@ test('volume changes cancel already scheduled cue notes, including setting zero 
  assert.equal(engine.level.gain.value,0);engine.stop();
 });
 
-test('land and water crossing signatures are distinct and shorter than 100 ms',async()=>{
+test('land and water crossing signatures are distinct and remain short',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
  engine.navigationCue({crossings:[{to:'land'},{to:'water'}]},prefs);
  const notes=[...engine.pendingTones];assert.equal(notes.length,2);
  assert.notDeepEqual([...notes[0].oscillator.wave.imag],[...notes[1].oscillator.wave.imag]);
  const ends=notes.map(n=>n.gain.gain.events.filter(e=>e[0]==='ramp').at(-1)[2]);
- assert.ok(Math.abs(ends[0]-1-.045)<1e-9);assert.ok(Math.abs(ends[1]-1-.1-.085)<1e-9);
- assert.ok(notes[0].oscillator.frequency.value<notes[1].oscillator.frequency.value);engine.stop();
+ assert.ok(Math.abs(ends[0]-1-.045)<1e-9);assert.ok(Math.abs(ends[1]-1-.1-.1)<1e-9);
+ assert.ok(notes[1].oscillator.frequency.value<notes[0].oscillator.frequency.value);engine.stop();
 });
 test('boundary mallets use a harmonic wave and softened envelopes',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();engine.navigationCue({boundary:'left'},prefs);

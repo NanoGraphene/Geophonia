@@ -130,7 +130,7 @@ export class AudioEngine {
   }
   crossingCue(surface, volume, group = 'coast', delay = 0) {
     if(surface==='land')return this.tone(330,delay,.045,.22*volume,{profile:'pluck',group,short:true,endHz:220});
-    if(surface==='water')return this.tone(1400,delay,.085,.19*volume,{profile:'droplet',group,short:true,endHz:650});
+    if(surface==='water')return this.tone(220,delay,.10,.24*volume,{profile:'drum',group,short:true,endHz:110});
   }
   navigationCue({ boundary = null, crossings = [] }, preferences) {
     if (!this.enabled) return 0;
