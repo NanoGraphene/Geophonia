@@ -157,10 +157,10 @@ document.addEventListener('keydown',event=>{
   const typing=!!target.closest('textarea, input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
   const selecting=!!target.closest('select');
   const editing=typing||(selecting&&!(pointerInside&&numeric));
-  const command=keyboardCommand(event,{editing,timeline,speech:narrator.enabled,otherRange:target.matches('input[type="range"]')&&!timeline});
+  const command=keyboardCommand(event,{editing,timeline,speech:narrator.enabled,otherRange:target.matches('input[type="range"]')&&!timeline&&!(pointerInside&&numeric)});
   if(!command)return;
   event.preventDefault();
-  if(['place','value','date'].includes(command)){if(pointerInside&&selecting)$('map').focus({preventScroll:true});readSelection(command);return;}
+  if(['place','value','date'].includes(command)){if(pointerInside&&(selecting||target.matches('input[type="range"]')))$('map').focus({preventScroll:true});readSelection(command);return;}
   const count=catalogs.get(pendingDataset)?.frames.length??0;
   changeTime(command==='first'?0:command==='last'?count-1:pendingIndex+(command==='previous'?-1:1));
 });
