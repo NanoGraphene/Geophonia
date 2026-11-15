@@ -110,3 +110,7 @@ test('disposal settles an in-flight startup load and ignores callbacks from its 
  assert.equal(worker.terminated,true);assert.equal(f.speech.worker,null);assert.equal(f.speech.ready,false);assert.equal(f.speech.loading,null);assert.equal(f.timers.size,0);assert.equal(f.contexts.length,0);
  stale({data:{type:'ready',mode:'stale'}});stale({data:chunk(0)});assert.equal(f.speech.ready,false);assert.equal(f.urls.length,0);assert.equal(f.activity.at(-1),false);
 });
+
+test('navigation gesture primes audio without model generation and stale activation errors are ignored',async()=>{
+ const f=fixture({holdResume:true});const activated=f.speech.activateAudio();assert.equal(f.workers.length,0);assert.equal(f.contexts.length,1);f.speech.stop();f.contexts[0].releaseResume();f.contexts[0].state='closed';await activated;assert.equal(f.diagnostics.some(d=>d.state==='playback error'),false);f.speech.dispose();
+});

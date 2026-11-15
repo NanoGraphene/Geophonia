@@ -4,7 +4,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import{read
 async function until(condition){for(let i=0;i<100;i++){if(condition())return;await new Promise(r=>setTimeout(r,10));}throw new Error('Application speech event timed out.');}
 test('startup preloads Phonon; shortcuts stream arbitrary text and native replay recovers blocked output',async()=>{
  const bundled=await build({entryPoints:['src/main.js'],bundle:true,write:false,format:'iife',loader:{'.css':'empty'},define:{'import.meta.url':'"https://app.test/src/main.js"'},logLevel:'silent'});
- const dom=new JSDOM(await readFile('index.html','utf8'),{url:'https://app.test/',runScripts:'outside-only'}),window=dom.window,errors=[],spoken=[],workers=[],contexts=[],blobs=new Map();let blocked=false,blobCount=0;
+ const dom=new JSDOM(await readFile('index.html','utf8'),{url:'https://app.test/',runScripts:'outside-only',pretendToBeVisual:true}),window=dom.window,errors=[],spoken=[],workers=[],contexts=[],blobs=new Map();let blocked=false,blobCount=0;
  window.addEventListener('error',e=>errors.push(e.error));
  Object.assign(window,{TextEncoder,TextDecoder,ResizeObserver:class{observe(){}},fetch:async url=>{const b=await readFile('public'+new URL(url,'https://app.test/').pathname);return {ok:true,json:async()=>JSON.parse(b),arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)};}});
  Object.defineProperty(window,'crypto',{value:webcrypto});window.URL.createObjectURL=blob=>{const url='blob:app-test-'+(++blobCount);blobs.set(url,blob);return url;};window.URL.revokeObjectURL=url=>blobs.delete(url);
@@ -16,13 +16,22 @@ test('startup preloads Phonon; shortcuts stream arbitrary text and native replay
  try{
   window.eval(bundled.outputFiles[0].text);await until(()=>window.document.getElementById('speech-engine-state').textContent==='Phonon · ready');
   assert.equal(workers.length,1);assert.equal(workers[0].messages.filter(m=>m.type==='init').length,1);assert.equal(spoken.length,0);assert.equal(contexts.length,0,'no audio activation or prerender at startup');
-  const input=window.document.getElementById('speech-text'),button=window.document.getElementById('voice-test'),player=window.document.getElementById('speech-player');input.value='A newly invented instrument named Quasarbrook measures minus 37.25 volts.';button.click();
-  await until(()=>contexts[0]?.nodes[0]?.started);assert.equal(spoken.at(-1),input.value);assert.equal(player.getAttribute('src'),null,'stream starts before complete WAV');workers[0].complete();await until(()=>player.src.startsWith('blob:'));contexts[0].nodes[0].onended();
+  const byId=id=>window.document.getElementById(id);
+  byId('tab-data').focus();byId('tab-data').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(window.document.activeElement,byId('tab-sound'));assert.equal(byId('tab-navigate').getAttribute('aria-selected'),'true','tab arrows only move interface focus');
+  await until(()=>spoken.at(-1)?.includes('Sound & speech. Tab. Not selected.'));
+  byId('tab-sound').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(byId('panel-sound').hidden,false);assert.equal(byId('panel-data').hidden,true);
+  await until(()=>spoken.at(-1)?.includes('Sound & speech. Tab. Selected.'));
+  const low=byId('min-hz'),high=byId('max-hz');for(let parent=low.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
+  low.value='900';high.value='100';byId('apply-pitch').click();await until(()=>spoken.at(-1)?.includes('Use 80–2000 Hz'));low.value='160';high.value='800';
+  const input=byId('speech-text'),button=byId('voice-test'),player=byId('speech-player');
+  for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;input.value='A newly invented instrument named Quasarbrook measures minus 37.25 volts.';const nodesBeforeReading=contexts[0].nodes.length;button.click();
+  await until(()=>contexts[0]?.nodes.length>nodesBeforeReading&&contexts[0].nodes.at(-1).started);assert.equal(spoken.at(-1),input.value);assert.equal(player.getAttribute('src'),null,'stream starts before complete WAV');workers[0].complete();await until(()=>player.src.startsWith('blob:'));contexts[0].nodes.at(-1).onended();
   await until(()=>window.document.getElementById('place-name').textContent==='Atlantic Ocean');
-  const map=window.document.getElementById('map');map.focus();map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'1',bubbles:true}));await until(()=>spoken.at(-1)==='Atlantic Ocean.');assert.equal(workers.length,1,'warm model worker reused');
+  const map=window.document.getElementById('map');map.focus();map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'1',bubbles:true}));await until(()=>spoken.at(-1)==='Atlantic Ocean.');await new Promise(r=>setTimeout(r,150));assert.equal(spoken.at(-1),'Atlantic Ocean.','pending map-help narration cannot interrupt an explicit reading');assert.equal(workers.length,1,'warm model worker reused');
+  byId('tab-sound').click();for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   input.focus();const before=spoken.length;input.dispatchEvent(new window.KeyboardEvent('keydown',{key:'1',bubbles:true}));assert.equal(spoken.length,before);
   blocked=true;input.value='A different new sentence for a blocked audio test.';button.click();await until(()=>spoken.at(-1)===input.value);workers[0].complete();await until(()=>window.document.getElementById('voice-status').textContent.includes('NotAllowedError'));assert.ok(player.src.startsWith('blob:'));assert.ok(blobs.size>0);
   blocked=false;await player.play();assert.match(window.document.getElementById('voice-status').textContent,/Phonon replay/);player.tabIndex=0;player.focus();const src=player.src;player.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(player.src,src);
-  window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(player.getAttribute('src'),null);assert.ok(contexts[0].nodes.every(n=>n.stopped||n.started));assert.deepEqual(errors,[]);
+  window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(player.getAttribute('src'),null);const atEscape=spoken.length;await new Promise(r=>setTimeout(r,150));assert.equal(spoken.length,atEscape,'closing controls cannot restart speech after Escape');assert.equal(byId('controls-panel').hidden,true);assert.equal(window.document.activeElement,byId('controls-toggle'));assert.ok(contexts[0].nodes.every(n=>n.stopped||n.started));assert.deepEqual(errors,[]);
  }finally{window.dispatchEvent(new window.Event('pagehide'));window.close();}
 });

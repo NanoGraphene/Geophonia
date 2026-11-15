@@ -11,6 +11,8 @@ import { AudioEngine } from './audio.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 import { PhononSpeech } from './phonon-speech.js';
+import {setupWorkspaceUI} from './workspace-ui.js';
+import {createUIAnnouncements} from './ui-announcements.js';
 import { loadPlaceNames } from './place-names.js';
 import { stepFrame, keyboardCommand } from './timeline.js';
 import { placeText, valueText, dateText, formattedValue } from './narration-text.js';
@@ -20,6 +22,7 @@ const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
 const audioSupported = !!(globalThis.AudioContext || globalThis.webkitAudioContext);
+let workspace=null, uiAnnouncements=null, interfaceInteracted=false, lastSpeechKind=null, interfaceFeedbackTimer=null;
 let source = null, geography = null, surfaceTracker = null, spatialTimer, active = false, legendPlaying = false, legendTimer, starting = false, pointerInside = false;
 const boundaryTracker = new BoundaryTracker();
 const selectionGate = createSelectionGate();
@@ -67,6 +70,7 @@ $('import-file').addEventListener('change',async event=>{
     const units=unitsColumn<0?[]:[...new Set(table.rows.map(r=>r[unitsColumn]).filter(Boolean))];$('import-unit').value=units.length===1?units[0]:'';
     $('import-load').disabled=false;$('import-status').textContent=`${table.rows.length} rows found. Confirm the columns and units, then add the dataset.`;
   }catch(error){if(ticket===importSerial)$('import-status').textContent=error.message;}
+  if(ticket===importSerial)interfaceFeedback(()=>$('import-status').textContent);
 });
 $('import-load').addEventListener('click',()=>{
   if(!importTable)return;
@@ -89,10 +93,60 @@ const narrator=new PhononSpeech({
     const printable={...details};for(const key of ['loadMs','generationMs','firstPCMms','estimatedPlaybackStartMs'])if(Number.isFinite(printable[key]))printable[key]=Math.round(printable[key]*10)/10;
     $('speech-diagnostics').textContent=JSON.stringify({...printable,playerReadyState:$('speech-player').readyState,playerNetworkState:$('speech-player').networkState,wavSupport:$('speech-player').canPlayType('audio/wav')},null,2);
     $('speech-engine-state').textContent=details.state==='engine error'?'Phonon · failed':details.engineReady?'Phonon · ready':'Phonon · loading';
+    if(details.state==='ready'&&interfaceInteracted&&lastSpeechKind!=='data')uiAnnouncements?.announceFocused();
   }
 });
-function stopNarration(){narrator.stop();}
+function speakInterface(text){lastSpeechKind='interface';$('interface-status').textContent=text;return narrator.speak(text);}
+function cancelInterfaceFeedback(){clearTimeout(interfaceFeedbackTimer);interfaceFeedbackTimer=null;}
+uiAnnouncements=createUIAnnouncements({document,
+  speak:speakInterface,
+  stop:()=>{if(lastSpeechKind==='interface')narrator.stop();},
+  isReady:()=>narrator.ready,
+  enabled:()=>narrator.enabled&&narrator.volume>0&&$('ui-announcements').checked&&!document.hidden
+});
+function primeInterfaceAudio(event){
+  if(event.target?.closest?.('audio,video'))return;
+  if(event.type==='keydown'&&(event.altKey||event.ctrlKey||event.metaKey||event.key==='Escape'))return;
+  interfaceInteracted=true;
+  if(narrator.enabled&&narrator.volume>0&&$('ui-announcements').checked)narrator.activateAudio();
+}
+document.addEventListener('keydown',primeInterfaceAudio,true);
+document.addEventListener('pointerdown',primeInterfaceAudio,true);
+$('ui-announcements').addEventListener('change',event=>{
+  uiAnnouncements.setEnabled(event.target.checked);
+  if(!event.target.checked&&narrator.ready&&narrator.enabled&&narrator.volume>0)speakInterface('Control announcements off.');
+});
+function interfaceFeedback(text){
+  cancelInterfaceFeedback();uiAnnouncements.cancel();
+  interfaceFeedbackTimer=setTimeout(()=>{
+    interfaceFeedbackTimer=null;
+    if(!narrator.ready||!narrator.enabled||!narrator.volume||!$('ui-announcements').checked||document.hidden)return;
+    const message=typeof text==='function'?text():text;if(message)speakInterface(message);
+  },120);
+}
+document.addEventListener('focusin',cancelInterfaceFeedback);
+const actionFeedback={
+  'apply-pitch':()=> $('pitch-error').textContent,
+  'apply-tone':()=> $('tone-status').textContent,
+  'mapping-apply':()=> $('mapping-status').textContent,
+  'mapping-auto':()=> $('mapping-status').textContent,
+  'import-load':()=> $('import-status').textContent,
+  'time-previous':()=> 'Selected time. '+$('timeline-date').textContent,
+  'time-next':()=> 'Selected time. '+$('timeline-date').textContent,
+  'start-audio':()=> $('audio-status').textContent,
+  'land-test':()=> $('place-name').textContent+'. '+$('location').textContent,
+  'water-test':()=> $('place-name').textContent+'. '+$('location').textContent,
+  'city-test':()=> $('place-name').textContent+'. '+$('location').textContent,
+  'reset':()=> 'Returned to start. '+$('location').textContent
+};
+document.addEventListener('click',event=>{
+  const button=event.target.closest?.('button');if(!button)return;
+  if(actionFeedback[button.id])interfaceFeedback(actionFeedback[button.id]);
+  else if(button.dataset.direction)interfaceFeedback(()=> 'Listening point. '+$('location').textContent);
+});
+function stopNarration(){cancelInterfaceFeedback();uiAnnouncements?.cancel();interfaceInteracted=false;lastSpeechKind=null;narrator.stop();}
 function readSelection(kind){
+  cancelInterfaceFeedback();uiAnnouncements?.cancel();lastSpeechKind='data';
   stopLegend();
   const state=store.get();
   const text=kind==='place'?placeText(placeLookup?.(state.location),state.location,placeStatus)
@@ -109,12 +163,14 @@ $('voice-stop').addEventListener('click',()=>{stopNarration();speechStatus('Spee
 $('voice-enabled').addEventListener('change',event=>{
   narrator.setEnabled(event.target.checked);
   for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).disabled=!event.target.checked;
-  speechStatus(event.target.checked?'Speech enabled · 1 place · 2 value · 3 date':'Spoken shortcuts are off.');
+  if(!event.target.checked){uiAnnouncements.cancel();interfaceInteracted=false;}
+  speechStatus(event.target.checked?'Phonon enabled · Tab reads controls · 1/2/3 read the map':'Phonon speech is off.');
+  if(event.target.checked)uiAnnouncements.announceFocused();
 });
 $('voice-speed').addEventListener('change',event=>{stopNarration();narrator.rate=Number(event.target.value);});
 $('voice-volume').addEventListener('input',event=>{narrator.setVolume(Number(event.target.value)/100);$('voice-volume-value').textContent=event.target.value+'%';});
 narrator.prepare().catch(()=>{});
-window.addEventListener('pagehide',event=>{if(!event.persisted)narrator.dispose();});
+window.addEventListener('pagehide',event=>{uiAnnouncements.cancel();if(!event.persisted){uiAnnouncements.destroy();narrator.dispose();}});
 async function initializePlaces() {
   if ($('retry-places').disabled) return;
   placeStatus='loading';$('retry-places').disabled=true;$('retry-places').hidden=true;
@@ -145,6 +201,8 @@ $('time-next').addEventListener('click',()=>changeTime(pendingIndex+1));
 document.addEventListener('keydown',event=>{
   const target=typeof event.target?.closest==='function'?event.target:document.activeElement??document.body;
   const timeline=target.id==='timeline'||target.id==='expanded-timeline';
+  // Standard interface controls own their keys; map shortcuts stay in the explorer.
+  if(target!==$('map')&&!timeline)return;
   const numeric=['1','2','3'].includes(event.key);
   if(target.closest('audio, video')&&!(pointerInside&&numeric))return;
   const typing=!!target.closest('textarea, input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
@@ -315,8 +373,9 @@ $('step').addEventListener('change', event => store.update({ spatialStep: Number
 for (const button of document.querySelectorAll('[data-direction]')) button.addEventListener('click', () => select(moveLocation(store.get().location, button.dataset.direction, store.get().spatialStep), true, 'keyboard'));
 $('coordinate-form').addEventListener('submit', event => {
   event.preventDefault();
-  if (!$('coordinate-form').reportValidity()) return;
+  if (!$('coordinate-form').reportValidity()){const invalid=$('coordinate-form').querySelector(':invalid');interfaceFeedback(()=>`${invalid?.labels?.[0]?.textContent.trim()||'Coordinate'}. ${invalid?.validationMessage||'Check the entered coordinate.'}`);return;}
   select({ lat: Number($('latitude').value), lon: Number($('longitude').value) }, true);
+  interfaceFeedback(()=>'Listening point. '+$('place-name').textContent+'. '+$('location').textContent);
 });
 $('latitude').min = -MAX_LAT; $('latitude').max = MAX_LAT;
 $('radius').addEventListener('change', event => {
@@ -373,10 +432,15 @@ $('start-audio').addEventListener('click', async () => {
   else await startAudio();
 });
 $('silence').addEventListener('click', () => silence());
-document.addEventListener('keydown', event => { if (event.key === 'Escape') silence(); });
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  if(!expanded&&workspace&&!workspace.isCollapsed&&document.activeElement?.closest('#controls-panel'))workspace.setCollapsed(true);
+  silence();
+});
 document.addEventListener('visibilitychange', () => { if (document.hidden) silence('Audio paused while this tab is inactive. Select Start audio to resume.'); });
 window.addEventListener('pagehide', () => silence());
 for (const button of document.querySelectorAll('[data-legend]')) button.addEventListener('click', async () => {
+  stopNarration();
   if (!source || !audioSupported || starting) return;
   stopLegend();
   if (!store.get().audio.enabled && !await startAudio()) return;
@@ -508,6 +572,7 @@ function closeExpanded(){
  silence('Expanded map closed. Audio paused.');
 }
 $('close-expanded').addEventListener('click',closeExpanded);
+$('expanded-controls').addEventListener('click',()=>{closeExpanded();workspace.showTab(workspace.activeTab,{focus:true});});
 $('expanded-dialog').addEventListener('cancel',event=>{event.preventDefault();closeExpanded();});
 $('expanded-audio').addEventListener('click',()=>$('start-audio').click());
 $('expanded-silence').addEventListener('click',()=>silence());
@@ -520,5 +585,6 @@ document.addEventListener('fullscreenchange',()=>{
  if(!document.fullscreenElement&&expanded){closeExpanded();return;}
  layoutMap();render(store.get());
 });
+workspace=setupWorkspaceUI(document,{onChange:()=>{layoutMap();render(store.get());uiAnnouncements.announceFocused();}});
 new ResizeObserver(()=>{layoutMap();render(store.get());}).observe($('map-stage'));
 render(store.get()); initialize(); initializeGeography(); initializePlaces();

@@ -1,6 +1,6 @@
 {
   "name": "earth-information-jukebox",
-  "version": "0.7.0",
+  "version": "0.8.0-gui.1",
   "private": true,
   "type": "module",
   "scripts": {

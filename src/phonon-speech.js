@@ -24,6 +24,8 @@ export class PhononSpeech {
   this.serial++;this.clearTimer('stallTimer');this.worker?.postMessage({type:'cancel',id:this.serial});this.playback.stop();this.chain=Promise.resolve();this.playbackError=null;
   this.player.onplaying=null;this.player.onended=null;this.player.onpause=null;this.player.onerror=null;this.player.pause();this.player.removeAttribute('src');this.player.load();if(this.url){this.revokeURL(this.url);this.url=null;}this.onActive(false);
  }
+ // Prime the audio context in a navigation gesture without generating speech.
+ activateAudio(){if(!this.enabled||!this.volume)return Promise.resolve(false);const id=this.serial;return this.playback.unlock().then(()=>true).catch(error=>{if(id===this.serial)this.reportPlaybackError(error);return false;});}
  setEnabled(enabled){this.enabled=enabled;if(!enabled)this.stop();}
  setVolume(value){this.volume=Math.max(0,Math.min(1,value));this.player.volume=this.volume;this.playback.setVolume(this.volume);if(!this.volume)this.stop();}
  watchFrames(){this.clearTimer('stallTimer');this.stallTimer=this.schedule(()=>this.fail('Phonon stopped producing audio. Press a reading key to reload and retry.'),60000);}
