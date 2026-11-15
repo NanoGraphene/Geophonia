@@ -30,7 +30,7 @@ export function clipExitPoint(from, to) {
   return { x: clamp(from.x + (to.x - from.x) * t, 0, 1), y: clamp(from.y + (to.y - from.y) * t, 0, 1) };
 }
 
-// All patterns are mono. Corners concatenate the vertical and horizontal patterns.
+// Every boundary uses the same single-note pattern; spatial placement identifies the edge or corner.
 const EDGES = {
   left: [{ hz: 330, delay: 0, duration: .22 }],
   right: [0, .12, .24].map(delay => ({ hz: 660, delay, duration: .065 })),
@@ -38,9 +38,6 @@ const EDGES = {
   bottom: [{ hz: 440, delay: 0, duration: .12 }, { hz: 330, delay: .17, duration: .12 }]
 };
 export function boundaryPattern(zone) {
-  if (EDGES[zone]) return EDGES[zone].map(n => ({ ...n }));
-  if (!BOUNDARY_NAMES.includes(zone)) return [];
-  const [vertical, horizontal] = zone.split('-');
-  return [...EDGES[vertical].map(n => ({ ...n })), ...EDGES[horizontal].map(n => ({ ...n, delay: n.delay + .42 }))];
+  return BOUNDARY_NAMES.includes(zone) ? EDGES.left.map(n => ({ ...n })) : [];
 }
 export function patternDuration(pattern) { return pattern.reduce((max, n) => Math.max(max, n.delay + n.duration), 0); }

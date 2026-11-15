@@ -39,11 +39,10 @@ test('pointer exit clips a fast movement to the visible edge or exact corner',()
  const tracker=new BoundaryTracker();assert.equal(tracker.update(clipExitPoint(from,{x:-1,y:.5}),size),'left');
  assert.equal(tracker.update({x:0,y:.5},size),null);
 });
-test('all boundary patterns are distinct in mono and corners concatenate vertical then horizontal',()=>{
+test('all boundary patterns share the single left-edge note',()=>{
  const signatures=BOUNDARY_NAMES.map(z=>JSON.stringify(boundaryPattern(z)));
- assert.equal(new Set(signatures).size,8);
- assert.equal(boundaryPattern('left').length,1);assert.equal(boundaryPattern('right').length,3);
- const corner=boundaryPattern('top-right');assert.deepEqual(corner.slice(0,2),boundaryPattern('top'));
- assert.ok(corner.slice(2).every(n=>n.delay>=.42));
+ assert.equal(new Set(signatures).size,1);
+ assert.equal(boundaryPattern('left').length,1);
+ assert.deepEqual(boundaryPattern('top-right'),boundaryPattern('left'));
  assert.deepEqual(boundaryPattern('unknown'),[]);
 });

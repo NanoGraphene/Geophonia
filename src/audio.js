@@ -1,4 +1,4 @@
-import { mapAudio, mapSpatialPosition } from './audio-mapping.js';
+import { mapAudio, mapBoundaryPosition, mapSpatialPosition } from './audio-mapping.js';
 import { boundaryPattern, patternDuration } from './navigation-cues.js';
 import { createSynthVoice, voiceFilter } from './synth-voice.js';
 export class AudioEngine {
@@ -93,7 +93,7 @@ export class AudioEngine {
     this.smooth(this.level.gain, gain);
     this.lastValidity = sample.validity;
   }
-  tone(frequency, delay, duration, gain, { profile = 'mallet', group = 'legend', short = false, endHz = null } = {}) {
+  tone(frequency, delay, duration, gain, { profile = 'mallet', group = 'legend', short = false, endHz = null, position = null } = {}) {
     if (!this.enabled) return;
     const envelope = this.context.createGain();
     const voice = createSynthVoice(this.context, envelope, frequency, { profile });
@@ -102,6 +102,11 @@ export class AudioEngine {
     envelope.connect(this.master);
     duration = Math.max(duration, short ? .03 : .16);
     const start = this.context.currentTime + delay;
+    if (position && voice.panner) {
+      voice.panner.positionX.setValueAtTime(position.x, start);
+      voice.panner.positionY.setValueAtTime(position.y, start);
+      voice.panner.positionZ.setValueAtTime(position.z, start);
+    }
     const attack = profile === 'pluck' ? .002 : profile === 'drum' ? .001 : short ? .003 : Math.min(.05, duration / 3);
     const hold = profile === 'pluck' ? Math.min(duration * .08, .008) : profile === 'drum' ? Math.min(duration * .12, .012) : short ? .006 : Math.max(.02, duration * .4);
     envelope.gain.setValueAtTime(0, start);
@@ -116,8 +121,8 @@ export class AudioEngine {
     oscillator.start(start); oscillator.stop(start + duration + .01);
     return entry;
   }
-  playPattern(pattern, volume, group, offset = 0, profile = 'mallet') {
-    for (const note of pattern) this.tone(note.hz, note.delay + offset, note.duration, .16 * volume, { group, profile });
+  playPattern(pattern, volume, group, offset = 0, profile = 'mallet', position = null) {
+    for (const note of pattern) this.tone(note.hz, note.delay + offset, note.duration, .16 * volume, { group, profile, position });
   }
   missingCue(volume, group = 'missing') {
     // Explicit legend only: a low, softly filtered swell, never repeated over gaps.
@@ -125,7 +130,7 @@ export class AudioEngine {
   }
   crossingCue(surface, volume, group = 'coast', delay = 0) {
     if(surface==='land')return this.tone(330,delay,.045,.22*volume,{profile:'pluck',group,short:true,endHz:220});
-    if(surface==='water')return this.tone(1400,delay,.085,.19*volume,{profile:'bright-pluck',group,short:true,endHz:650});
+    if(surface==='water')return this.tone(1400,delay,.085,.19*volume,{profile:'droplet',group,short:true,endHz:650});
   }
   navigationCue({ boundary = null, crossings = [] }, preferences) {
     if (!this.enabled) return 0;
@@ -134,8 +139,8 @@ export class AudioEngine {
       this.cancelTones('coast');
       coasts.forEach((c,i)=>this.crossingCue(c.to,preferences.volume,'coast',i*.10));
     }
-    const edge = preferences.boundaryCues !== false ? boundaryPattern(boundary) : [];
-    if(edge.length){this.cancelTones('navigation');this.playPattern(edge,preferences.volume,'navigation',coasts.length*.10,'drum');}
+    const edge = preferences.boundaryCues !== false && boundary ? boundaryPattern('left') : [];
+    if(edge.length){this.cancelTones('navigation');this.playPattern(edge,preferences.volume,'navigation',coasts.length*.10,'drum',mapBoundaryPosition(boundary));}
     return coasts.length*100+(edge.length?(patternDuration(edge)+.16)*1000:0);
   }
   legend(kind, preferences) {
@@ -146,8 +151,8 @@ export class AudioEngine {
     if (kind === 'missing') { this.missingCue(volume, 'legend'); return 750; }
     if(kind==='coast-land'||kind==='coast-water'){this.crossingCue(kind.slice(6),volume,'legend');return 150;}
     if (kind.startsWith('edge-')) {
-      const pattern = boundaryPattern(kind.slice(5));
-      this.playPattern(pattern, volume, 'legend', 0, 'drum'); return patternDuration(pattern) * 1000 + 180;
+      const pattern = boundaryPattern('left');
+      this.playPattern(pattern, volume, 'legend', 0, 'drum', mapBoundaryPosition(kind.slice(5))); return patternDuration(pattern) * 1000 + 180;
     }
     return 1500;
   }

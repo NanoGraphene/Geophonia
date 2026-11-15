@@ -5,6 +5,13 @@ export function mapSpatialPosition(position) {
   const vertical = 1 - clamp(position.y, 0, 1) * 2;
   return { x: horizontal * 2.5, y: vertical * 1.5, z: -1.5 + vertical * .5 };
 }
+export function mapBoundaryPosition(zone) {
+  if (!zone) return null;
+  return mapSpatialPosition({
+    x: zone.includes('left') ? 0 : zone.includes('right') ? 1 : .5,
+    y: zone.includes('top') ? 0 : zone.includes('bottom') ? 1 : .5
+  });
+}
 export function validatePitchRange(min, max) {
   return Number.isFinite(min) && Number.isFinite(max) && min >= 80 && max <= 2000 && min < max;
 }

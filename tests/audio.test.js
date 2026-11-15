@@ -90,7 +90,7 @@ test('boundary and crossing cues replace stale sounds with bounded latest crossi
  engine.navigationCue({boundary:'left'},prefs);const old=[...engine.pendingTones];
  engine.navigationCue({boundary:'top-right',crossings:[{to:'land'},{to:'water'},{to:'land'},{to:'water'}]},prefs);
  assert.ok(old.every(e=>e.oscillator.stopped));
- assert.equal([...engine.pendingTones].filter(t=>t.group==='navigation').length,5);
+ assert.equal([...engine.pendingTones].filter(t=>t.group==='navigation').length,1);
  assert.equal([...engine.pendingTones].filter(t=>t.group==='coast').length,2);
  engine.stop();assert.equal(engine.pendingTones.size,0);assert.equal(engine.master.gain.value,0);
 });
@@ -105,7 +105,7 @@ test('muted and disabled cue preferences schedule no navigation sound',async()=>
 test('missing-sample cancellation never cancels a valid navigation cue',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();engine.update(missing,prefs,true,'land');
  engine.navigationCue({boundary:'right'},prefs);assert.equal([...engine.pendingTones].filter(e=>e.group==='missing').length,0);
- engine.update(valid,prefs,true,'water');assert.equal([...engine.pendingTones].filter(e=>e.group==='navigation').length,3);
+ engine.update(valid,prefs,true,'water');assert.equal([...engine.pendingTones].filter(e=>e.group==='navigation').length,1);
  engine.stop();
 });
 
@@ -130,6 +130,15 @@ test('boundary mallets use a harmonic wave and softened envelopes',async()=>{
  const note=[...engine.pendingTones][0];assert.ok(note.oscillator.wave.imag[3]>0);
  assert.equal(note.voice.filter.type,'lowpass');
  assert.ok(note.gain.gain.events.some(e=>e[0]==='ramp'&&e[2]>=1.04));engine.stop();
+});
+test('all map-edge cues use one drum profile with boundary spatial placement',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();engine.navigationCue({boundary:'left'},prefs);
+ const note=[...engine.pendingTones][0];
+ assert.ok(note.voice.panner);
+ assert.ok(note.voice.panner.positionX.events.some(event=>event[0]==='set'&&event[1]===-2.5));
+ assert.ok(note.voice.panner.positionY.events.some(event=>event[0]==='set'&&event[1]===0));
+ assert.ok(note.voice.panner.positionZ.events.some(event=>event[0]==='set'&&event[1]===-1.5));
+ assert.ok(Math.abs(note.voice.oscillator.wave.imag[2]-.8)<1e-6);engine.stop();
 });
 
 test('crossing legend auditions a single short impact and silence cancels it',async()=>{
