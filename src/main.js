@@ -112,10 +112,19 @@ function primeInterfaceAudio(event){
 }
 document.addEventListener('keydown',primeInterfaceAudio,true);
 document.addEventListener('pointerdown',primeInterfaceAudio,true);
-$('ui-announcements').addEventListener('change',event=>{
-  uiAnnouncements.setEnabled(event.target.checked);
-  if(!event.target.checked&&narrator.ready&&narrator.enabled&&narrator.volume>0)speakInterface('Control announcements off.');
-});
+function setAutomaticAnnouncements(enabled){
+  cancelInterfaceFeedback();
+  $('ui-announcements').checked=enabled;
+  uiAnnouncements.setEnabled(enabled);
+  for(const button of document.querySelectorAll('[data-auto-announcements]')){
+    button.setAttribute('aria-pressed',String(enabled));
+    button.textContent=`Automatic speech: ${enabled?'on':'off'}`;
+  }
+  $('interface-status').textContent=enabled?'Automatic announcements on.':'Automatic announcements off. 1/2/3 still read the map.';
+  if(!enabled&&lastSpeechKind==='interface')narrator.stop();
+}
+$('ui-announcements').addEventListener('change',event=>setAutomaticAnnouncements(event.target.checked));
+for(const button of document.querySelectorAll('[data-auto-announcements]'))button.addEventListener('click',()=>setAutomaticAnnouncements(!$('ui-announcements').checked));
 function interfaceFeedback(text){
   cancelInterfaceFeedback();uiAnnouncements.cancel();
   interfaceFeedbackTimer=setTimeout(()=>{

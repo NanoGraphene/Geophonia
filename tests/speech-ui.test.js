@@ -28,6 +28,14 @@ test('startup preloads Phonon; shortcuts stream arbitrary text and native replay
   await until(()=>contexts[0]?.nodes.length>nodesBeforeReading&&contexts[0].nodes.at(-1).started);assert.equal(spoken.at(-1),input.value);assert.equal(player.getAttribute('src'),null,'stream starts before complete WAV');workers[0].complete();await until(()=>player.src.startsWith('blob:'));contexts[0].nodes.at(-1).onended();
   await until(()=>window.document.getElementById('place-name').textContent==='Atlantic Ocean');
   const map=window.document.getElementById('map');map.focus();map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'1',bubbles:true}));await until(()=>spoken.at(-1)==='Atlantic Ocean.');await new Promise(r=>setTimeout(r,150));assert.equal(spoken.at(-1),'Atlantic Ocean.','pending map-help narration cannot interrupt an explicit reading');assert.equal(workers.length,1,'warm model worker reused');
+  const automaticButtons=[...window.document.querySelectorAll('[data-auto-announcements]')];
+  automaticButtons[0].click();assert.equal(byId('ui-announcements').checked,false);
+  assert.ok(automaticButtons.every(button=>button.getAttribute('aria-pressed')==='false'));
+  const quietCount=spoken.length;byId('focus-map').focus();await new Promise(r=>setTimeout(r,180));assert.equal(spoken.length,quietCount,'automatic speech stays quiet');
+  for(const [key,expected] of [['1',/Atlantic Ocean/],['2',/./],['3',/2007/]]){
+    map.focus();const count=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key,bubbles:true}));await until(()=>spoken.length>count);assert.match(spoken.at(-1),expected);
+  }
+  automaticButtons[1].click();assert.equal(byId('ui-announcements').checked,true);assert.ok(automaticButtons.every(button=>button.getAttribute('aria-pressed')==='true'));
   byId('tab-sound').click();for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   input.focus();const before=spoken.length;input.dispatchEvent(new window.KeyboardEvent('keydown',{key:'1',bubbles:true}));assert.equal(spoken.length,before);
   blocked=true;input.value='A different new sentence for a blocked audio test.';button.click();await until(()=>spoken.at(-1)===input.value);workers[0].complete();await until(()=>window.document.getElementById('voice-status').textContent.includes('NotAllowedError'));assert.ok(player.src.startsWith('blob:'));assert.ok(blobs.size>0);
