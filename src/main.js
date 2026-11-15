@@ -11,7 +11,8 @@ import { AudioEngine } from './audio.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 import { NaturalVoice } from './natural-voice.js';
-import { locationText, describeCurrent, describeDataset } from './narration-text.js';
+import { locationText, describeCurrent, describeDataset, describeValue, describeMap } from './narration-text.js';
+
 const $ = id => document.getElementById(id);
 const store = createStore();
 const audio = new AudioEngine();
@@ -33,7 +34,7 @@ const narrator = new NaturalVoice({
 });
 function syncVoiceControls() {
   const browser = $('voice-engine').value === 'browser';
-  const ready = (browser ? !!globalThis.speechSynthesis : narrator.loaded) && !!source;
+  const ready = (browser ? !!globalThis.speechSynthesis : (narrator.loaded || !!globalThis.speechSynthesis)) && !!source;
   for (const button of document.querySelectorAll('[data-read]')) button.disabled = !ready;
   $('voice-load').hidden = browser;
   $('voice-choice').disabled = browser;
@@ -41,12 +42,25 @@ function syncVoiceControls() {
 function stopNarration() {
   $('voice-sample').pause(); narrator.stop();
 }
-function readSelection(kind) {
+function readSelection(kind, { fallback = false } = {}) {
   if (!source) return;
   $('voice-sample').pause(); stopLegend();
-  const text = kind === 'location' ? `Selected location: ${locationText(store.get().location)}.` : kind === 'dataset' ? describeDataset(source.manifest) : describeCurrent(store.get());
+  const state = store.get();
+  const text =
+    kind === 'location' ? `Selected location: ${locationText(state.location)}.` :
+    kind === 'value'    ? describeValue(state) :
+    kind === 'map'      ? describeMap(source.manifest) :
+    kind === 'dataset'  ? describeDataset(source.manifest) :
+                          describeCurrent(state);
   $('voice-transcript').textContent = text;
-  narrator.read(text, { engine: $('voice-engine').value, voice: $('voice-choice').value, speed: Number($('voice-speed').value) });
+
+  // Hotkeys use the browser voice if the natural voice isn't loaded.
+  let engine = $('voice-engine').value;
+  if (engine !== 'browser' && !narrator.loaded && fallback && globalThis.speechSynthesis) engine = 'browser';
+
+  const ready = engine === 'browser' ? !!globalThis.speechSynthesis : narrator.loaded;
+  if (!ready) { announce(text, true); return; }
+  narrator.read(text, { engine, voice: $('voice-choice').value, speed: Number($('voice-speed').value) });
 }
 $('voice-load').addEventListener('click', () => narrator.load(new URL('./runtime/', document.baseURI).href).catch(() => {}));
 $('voice-engine').addEventListener('change', () => {
@@ -259,6 +273,15 @@ $('start-audio').addEventListener('click', async () => {
 });
 $('silence').addEventListener('click', () => silence());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') silence(); });
+document.addEventListener('keydown', event => {
+  if (event.altKey || event.metaKey || event.ctrlKey || event.repeat) return;
+  // Don't hijack digits typed into the coordinate fields, pitch fields, or selects.
+  if (event.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  const kind = { '1': 'location', '2': 'value', '3': 'map' }[event.key];
+  if (!kind) return;
+  event.preventDefault();
+  readSelection(kind, { fallback: true });
+});
 document.addEventListener('visibilitychange', () => { if (document.hidden) silence('Audio paused while this tab is inactive. Select Start audio to resume.'); });
 window.addEventListener('pagehide', () => silence());
 for (const button of document.querySelectorAll('[data-legend]')) button.addEventListener('click', async () => {
