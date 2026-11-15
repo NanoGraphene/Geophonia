@@ -1,5 +1,6 @@
 import { clamp } from './coordinates.js';
 import { SOUND_PROFILES } from './sound-profiles.js';
+import {MIN_BEAT_HZ,MAX_BEAT_HZ} from './audio-mapping.js';
 
 // Native additive synthesis keeps the fundamental tied to data, with quiet overtones.
 export const PAD_PARTIALS = [0, 1, .32, .18, .10, .05];
@@ -13,15 +14,18 @@ export const PAD_VOICES = [
   { ratio: 1.5, detune: -2, gain: .18 },
   { ratio: 2, detune: 3, gain: .12 }
 ];
-const DATA_VOICES=[{ratio:1,detune:0,gain:.64},{ratio:2,detune:0,gain:.18},{ratio:3,detune:0,gain:.1},{ratio:1,detune:4,gain:.08}];
-export function voiceFilter(fundamental) {
+// Both pairs share the same Hz difference, so beating does not depend on pitch.
+const DATA_VOICES=[{ratio:1,beat:0,detune:0,gain:.46},{ratio:1,beat:-1,detune:0,gain:.26},{ratio:2,beat:0,detune:0,gain:.18},{ratio:2,beat:-1,detune:0,gain:.10}];
+export function voiceFilter(fundamental,profile='pad') {
+ if(SOUND_PROFILES[profile])return {cutoff:clamp(fundamental*5,1400,4800),resonance:.35};
  return {cutoff:clamp(fundamental*4,100,18000),resonance:.55};
 }
-export function createSynthVoice(context, target, frequency, { profile = 'pad' } = {}) {
+export function createSynthVoice(context, target, frequency, { profile = 'pad',beatHz=MIN_BEAT_HZ } = {}) {
   const filter = context.createBiquadFilter();
   const nyquist=(context.sampleRate??48000)/2;
   const panner = typeof context.createPanner === 'function' ? context.createPanner() : null;
   let currentProfile=profile;
+  let beatRate=clamp(beatHz,MIN_BEAT_HZ,MAX_BEAT_HZ);
   const partials = SOUND_PROFILES[profile]?.partials??(profile === 'pluck' ? PLUCK_PARTIALS : profile === 'bright-pluck' ? BRIGHT_PLUCK_PARTIALS : profile === 'drum' ? DRUM_PARTIALS : profile === 'knock' ? [0,1,.7,.45,.3,.2,.1] : profile === 'droplet' ? [0,1,.12,.03] : profile === 'mallet' ? MALLET_PARTIALS : PAD_PARTIALS);
   const voiceSpecs = SOUND_PROFILES[profile]?DATA_VOICES:profile === 'pad' ? PAD_VOICES : [{ ratio: 1, detune: 0, gain: 1 }];
   const wave=values=>context.createPeriodicWave(new Float32Array(values.length),Float32Array.from(values));
@@ -29,14 +33,15 @@ export function createSynthVoice(context, target, frequency, { profile = 'pad' }
   const oscillators = voiceSpecs.map(spec => {
     const oscillator = context.createOscillator(), gain = context.createGain();
     oscillator.setPeriodicWave(initialWave);
-    const hz=frequency*spec.ratio;
+    const hz=frequency*spec.ratio+(spec.beat??0)*beatRate;
     oscillator.frequency.value = Math.min(hz,nyquist*.98);
     oscillator.detune.value = spec.detune;
     gain.gain.value = spec.gain*clamp((nyquist*.95-hz)/(nyquist*.2),0,1);
     oscillator.connect(gain); gain.connect(filter);
     return { oscillator, gain };
   });
-  filter.type = 'lowpass'; filter.frequency.value = Math.min(voiceFilter(frequency).cutoff,nyquist*.9); filter.Q.value = .55;
+  const voicing=voiceFilter(frequency,profile);
+  filter.type = 'lowpass'; filter.frequency.value = Math.min(voicing.cutoff,nyquist*.9); filter.Q.value = voicing.resonance;
   if (panner) {
     panner.panningModel = 'HRTF'; panner.distanceModel = 'inverse';
     panner.refDistance = 1; panner.rolloffFactor = .3; panner.maxDistance = 10000;
@@ -48,14 +53,16 @@ export function createSynthVoice(context, target, frequency, { profile = 'pad' }
     oscillators: oscillators.map(entry => entry.oscillator),
     filter, panner,
     get profile(){return currentProfile;},
+    get beatHz(){return beatRate;},
     setProfile(next){
       if(next===currentProfile||!SOUND_PROFILES[next]||!SOUND_PROFILES[currentProfile])return;
       const nextWave=wave(SOUND_PROFILES[next].partials);
       oscillators.forEach(entry=>entry.oscillator.setPeriodicWave(nextWave));currentProfile=next;
     },
-    setFrequency(frequency,apply){
+    setFrequency(frequency,apply,beatHz=MIN_BEAT_HZ){
+      beatRate=clamp(beatHz,MIN_BEAT_HZ,MAX_BEAT_HZ);
       oscillators.forEach((entry,index)=>{
-        const spec=voiceSpecs[index],hz=frequency*spec.ratio;
+        const spec=voiceSpecs[index],hz=frequency*spec.ratio+(spec.beat??0)*beatRate;
         // Taper voices near Nyquist instead of folding inaudible harmonics down.
         apply(entry.oscillator.frequency,Math.min(hz,nyquist*.98));
         apply(entry.gain.gain,spec.gain*clamp((nyquist*.95-hz)/(nyquist*.2),0,1));

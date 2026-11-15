@@ -28,7 +28,7 @@ test('startup preloads Phonon; shortcuts stream arbitrary text and native replay
   byId('tab-sound').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(byId('panel-sound').hidden,false);assert.equal(byId('panel-data').hidden,true);
   await until(()=>spoken.at(-1)?.includes('Sound & speech. Tab. Selected.'));
   const low=byId('min-hz'),high=byId('max-hz');for(let parent=low.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
-  low.value='900';high.value='100';byId('apply-pitch').click();await until(()=>spoken.at(-1)?.includes('Use 1000–10000 Hz'));low.value='1000';high.value='8000';
+  low.value='900';high.value='100';byId('apply-pitch').click();await until(()=>spoken.at(-1)?.includes('Use 100–2000 Hz'));low.value='200';high.value='2000';
   const input=byId('speech-text'),button=byId('voice-test'),player=byId('speech-player');
   for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;input.value='A newly invented instrument named Quasarbrook measures minus 37.25 volts.';const nodesBeforeReading=contexts[0].nodes.length;button.click();
   await until(()=>contexts[0]?.nodes.length>nodesBeforeReading&&contexts[0].nodes.at(-1).started);assert.equal(spoken.at(-1),input.value);assert.equal(player.getAttribute('src'),null,'stream starts before complete WAV');workers[0].complete();await until(()=>player.src.startsWith('blob:'));contexts[0].nodes.at(-1).onended();

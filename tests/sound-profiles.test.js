@@ -31,10 +31,24 @@ test('new datasets can declare profiles or use manual overrides, with a neutral 
  assert.equal(resolveSoundProfile({sonification:{profile:'unknown'}}),'harmonic');
 });
 test('negative temperature and zero use logarithmic pitch without taking the log of a physical value',()=>{
- const preferences={minHz:1000,maxHz:8000,volume:.25,mapping:{min:-40,max:40,curve:'linear',amplitude:'coverage'}};
+ const preferences={minHz:200,maxHz:2000,volume:.25,mapping:{min:-40,max:40,curve:'linear',amplitude:'coverage'}};
  const sample=value=>({value:.5,measurement:value,density:1,validity:'valid'});
- assert.equal(mapAudio(sample(-40),preferences).frequency,1000);
- assert.equal(mapAudio(sample(0),preferences).frequency,Math.sqrt(8000000));
- assert.equal(mapAudio(sample(40),preferences).frequency,8000);
+ assert.equal(mapAudio(sample(-40),preferences).frequency,200);
+ assert.equal(mapAudio(sample(0),preferences).frequency,Math.sqrt(400000));
+ assert.equal(mapAudio(sample(40),preferences).frequency,2000);
  assert.ok(mapAudio(sample(.1),preferences).frequency>mapAudio(sample(0),preferences).frequency);
+});
+test('value controls pitch and beat speed while density is the only amplitude channel',()=>{
+ const preferences={minHz:200,maxHz:2000,volume:.25};
+ const samples=[0,.25,.5,.75,1].map(value=>({value,density:.36,intensity:value,validity:'valid'}));
+ const output=samples.map(sample=>mapAudio(sample,{...preferences,mapping:null}));
+ assert.ok(output.every((result,index)=>!index||result.frequency>output[index-1].frequency&&result.beatHz>output[index-1].beatHz));
+ assert.ok(output.every(result=>result.gain===.018));
+ assert.equal(output[0].beatHz,.8);assert.equal(output.at(-1).beatHz,12);
+ assert.equal(mapAudio({...samples[0],density:0},preferences).gain,0);
+ assert.equal(mapAudio({...samples[0],density:1},preferences).gain,.03);
+ for(const amplitude of ['value','intensity','coverage']){
+   const mapping={min:0,max:1,curve:'linear',amplitude};
+   assert.equal(mapAudio({...samples[0],measurement:0},{...preferences,mapping}).gain,.018);
+ }
 });

@@ -5,7 +5,7 @@ import { DEFAULT_MAX_HZ, DEFAULT_MIN_HZ, mapAudio, validatePitchRange } from '..
 import { readFile } from 'node:fs/promises';
 const rgb=JSON.parse(await readFile(new URL('../public/data/palette.json',import.meta.url))).rgb;
 const palette=preparePalette(rgb);
-const preferences={minHz:1000,maxHz:8000,volume:.25};
+const preferences={minHz:200,maxHz:2000,volume:.25};
 const image=(colors,width=colors.length)=>({width,height:colors.length/width,data:Uint8ClampedArray.from(colors.flat())});
 test('actual source palette is ordered blue to red, including valid zero',()=>{
  const positions=[0,60,130,200,275].map(i=>matchColor(...rgb[i],255,palette));
@@ -24,7 +24,7 @@ test('neighborhood separates trace proportion and palette mean, preserving zero'
  const result=sampleNeighborhood(im,{lon:0,lat:0},1,palette);
  assert.equal(result.value,0);assert.equal(result.validity,'valid');
  assert.equal(result.density,1/3);assert.equal(result.totalPixels,3);
- const mapped=mapAudio(result,preferences);assert.equal(mapped.frequency,1000);assert.ok(mapped.gain>0);
+ const mapped=mapAudio(result,preferences);assert.equal(mapped.frequency,200);assert.ok(mapped.gain>0);
 });
 test('missing sample has null value and zero gain; no NaN from empty neighborhood',()=>{
  const result=sampleNeighborhood(image([[0,0,0,255]]),{lon:0,lat:0},0,palette);
@@ -37,7 +37,7 @@ test('sampling wraps at the antimeridian and omits pixels beyond source poles',(
  assert.equal(result.totalPixels,6);assert.equal(result.matchedPixels,2);assert.ok(result.value>.45&&result.value<.55);
  assert.throws(()=>sampleNeighborhood(im,{lon:0,lat:0},-1,palette));
 });
-test('value maps to continuous logarithmic pitch across three octaves and gain stays bounded',()=>{
+test('value maps to continuous logarithmic pitch with a 2000 Hz ceiling and gain stays bounded',()=>{
  const s=value=>({value,density:1,validity:'valid'});
  assert.equal(mapAudio(s(0),preferences).frequency,DEFAULT_MIN_HZ);
  assert.equal(mapAudio(s(1),preferences).frequency,DEFAULT_MAX_HZ);
@@ -45,12 +45,12 @@ test('value maps to continuous logarithmic pitch across three octaves and gain s
  assert.ok(Math.abs(mapAudio(s(-1),preferences).frequency-DEFAULT_MIN_HZ)<1e-9);assert.ok(Math.abs(mapAudio(s(2),preferences).frequency-DEFAULT_MAX_HZ)<1e-9);
  const pitches=[0,.001,.002,.5,1].map(value=>mapAudio(s(value),preferences).frequency);assert.ok(pitches.every((f,i)=>!i||f>pitches[i-1]));
  assert.ok(Math.abs(pitches[1]/pitches[0]-pitches[2]/pitches[1])<1e-12,'equal small increments have equal pitch ratios');
- assert.equal(validatePitchRange(999,8000),false);
+ assert.equal(validatePitchRange(200,2001),false);
  assert.equal(mapAudio(s(1),preferences).gain,.03);
  assert.ok(mapAudio({...s(1),density:.5},preferences).gain>.015);
  assert.equal(mapAudio(s(1),{...preferences,volume:0}).gain,0);
- assert.equal(validatePitchRange(800,160),false);assert.equal(validatePitchRange(1000,10000),true);
- assert.equal(validatePitchRange(NaN,8000),false);
+ assert.equal(validatePitchRange(800,160),false);assert.equal(validatePitchRange(100,2000),true);
+ assert.equal(validatePitchRange(NaN,2000),false);
 });
 test('the same color stays comparable across fixture frames, independent of nearby density',()=>{
  const c=[...rgb[130],255];

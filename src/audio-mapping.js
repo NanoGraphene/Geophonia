@@ -13,11 +13,12 @@ export function mapBoundaryPosition(zone) {
   });
 }
 export function validatePitchRange(min, max) {
-  return Number.isFinite(min) && Number.isFinite(max) && min >= 1000 && max <= 10000 && min < max;
+  return Number.isFinite(min) && Number.isFinite(max) && min >= 100 && max <= 2000 && min < max;
 }
-export const DEFAULT_MIN_HZ = 1000;
-export const DEFAULT_MAX_HZ = 8000;
-export const COVERAGE_GAIN_FLOOR = .35;
+export const DEFAULT_MIN_HZ = 200;
+export const DEFAULT_MAX_HZ = 2000;
+export const MIN_BEAT_HZ = .8;
+export const MAX_BEAT_HZ = 12;
 export function mapAudio(sample, preferences) {
   const minHz=preferences.minHz??DEFAULT_MIN_HZ,maxHz=preferences.maxHz??DEFAULT_MAX_HZ;
   if (!sample || sample.validity !== 'valid' || !Number.isFinite(sample.value) || !validatePitchRange(minHz,maxHz)) return { frequency: null, gain: 0 };
@@ -33,10 +34,9 @@ export function mapAudio(sample, preferences) {
   // Equal value increments give equal pitch intervals, without quantizing notes.
   // This works for negative temperatures and zero too: only frequency is logged.
   const frequency = minHz * Math.pow(maxHz / minHz, normalized);
-  const rawAmplitude=mapping?.amplitude==='value'?normalized:mapping?.amplitude==='intensity'?sample.intensity:sample.density;
-  const amplitude = mapping?.amplitude === 'coverage' || !mapping?.amplitude
-    ? COVERAGE_GAIN_FLOOR + (1 - COVERAGE_GAIN_FLOOR) * Math.sqrt(clamp(rawAmplitude ?? 0, 0, 1))
-    : clamp(rawAmplitude ?? 0, 0, 1);
+  const beatHz=MIN_BEAT_HZ+(MAX_BEAT_HZ-MIN_BEAT_HZ)*normalized;
+  // Density alone sets the level; value changes pitch and beating, not gain.
+  const amplitude = Math.sqrt(clamp(sample.density ?? 0,0,1));
   const gain = .12 * clamp(preferences.volume, 0, 1) * amplitude;
-  return { frequency, gain };
+  return { frequency, beatHz, gain };
 }

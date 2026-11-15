@@ -9,7 +9,7 @@ import{parseCSV,createGridDataset}from'../src/csv-grid.js';
 import{gridPixels}from'../src/grid-renderer.js';
 import{valueText,formattedValue,dateText}from'../src/narration-text.js';
 import catalog from '../public/data/catalog.json' with {type:'json'};
-const prefs={minHz:1000,maxHz:8000,volume:.25};
+const prefs={minHz:200,maxHz:2000,volume:.25};
 test('nonlinear legends interpolate actual labeled tick anchors, including logarithmic and nonuniform scales',async()=>{
   for(const id of ['air-5151','air-5152','air-5153','air-5154']){
     const m=JSON.parse(await readFile(`public/data/${id}-manifest.json`));
@@ -51,15 +51,15 @@ test('annotation masks and dark neutral backgrounds cannot become high-value pal
   source.imageData.data.set([255,255,255,255]);assert.equal(sampleFeatures(source,{lon:0,lat:0},0).value,0);
   manifest.masks=[[0,0,1,1]];assert.equal(sampleFeatures(source,{lon:0,lat:0},0).value,null);
 });
-test('pitch and amplitude use chosen range/channel with clipping, log and square-root response',()=>{
+test('pitch uses the chosen data range/curve while density alone controls amplitude',()=>{
   const sample={value:.25,measurement:10,density:.5,intensity:.8,validity:'valid'};
   const mapping={min:1,max:100,curve:'log',amplitude:'value'};
-  const output=mapAudio(sample,{...prefs,mapping});assert.equal(output.frequency,Math.sqrt(8000000));assert.equal(output.gain,.015);
-  assert.ok(mapAudio(sample,{...prefs,mapping:{...mapping,amplitude:'coverage'}}).gain>.015);
-  assert.equal(mapAudio(sample,{...prefs,mapping:{...mapping,amplitude:'intensity'}}).gain,.024);
-  assert.equal(mapAudio({...sample,measurement:1000},{...prefs,mapping}).frequency,8000);
+  const output=mapAudio(sample,{...prefs,mapping});assert.equal(output.frequency,Math.sqrt(400000));assert.equal(output.gain,.03*Math.sqrt(.5));
+  assert.equal(mapAudio(sample,{...prefs,mapping:{...mapping,amplitude:'coverage'}}).gain,output.gain);
+  assert.equal(mapAudio(sample,{...prefs,mapping:{...mapping,amplitude:'intensity'}}).gain,output.gain);
+  assert.equal(mapAudio({...sample,measurement:1000},{...prefs,mapping}).frequency,2000);
   assert.equal(mapAudio(sample,{...prefs,mapping:{...mapping,min:0}}).frequency,null);
-  assert.equal(mapAudio(sample,{...prefs,mapping:{min:0,max:40,curve:'sqrt',amplitude:'value'}}).frequency,Math.sqrt(8000000));
+  assert.equal(mapAudio(sample,{...prefs,mapping:{min:0,max:40,curve:'sqrt',amplitude:'value'}}).frequency,Math.sqrt(400000));
   assert.equal(mapAudio(sample,{...prefs,volume:0,mapping}).gain,0);
 });
 test('imported grid rendering and sampling refer to identical geographic cells, with missing pixels transparent',()=>{
@@ -67,7 +67,7 @@ test('imported grid rendering and sampling refer to identical geographic cells, 
   const pixels=gridPixels(data.manifest,data.grids[0],4);
   assert.equal(pixels[3],255);assert.equal(pixels[(0*4+3)*4+3],0);
   const zero=sampleFeatures({manifest:data.manifest,gridData:data.grids[0]},{lat:-45,lon:-90},0);assert.equal(zero.measurement,0);assert.equal(zero.validity,'valid');
-  assert.equal(data.manifest.valueScale.max,60);assert.equal(data.manifest.mapping.amplitude,'value');
+  assert.equal(data.manifest.valueScale.max,60);assert.equal(data.manifest.mapping.amplitude,'coverage');
   assert.match(valueText({sample:zero},data.manifest),/0 meters/);assert.doesNotMatch(valueText({sample:zero},data.manifest),/Celsius|image color/);
 });
 test('catalog assets preserve integrity and date precision instead of inventing instants',async()=>{

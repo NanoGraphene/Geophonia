@@ -46,7 +46,7 @@ for(const item of UNAVAILABLE_DATASETS) {
   const row=document.createElement('li'),link=document.createElement('a');link.href=item.sourcePage;link.textContent=item.title;link.target='_blank';link.rel='noopener';row.append(link,document.createTextNode(': '+item.reason));$('unavailable-datasets').append(row);
 }
 function mappingControls(mapping) {
-  $('mapping-min').value=mapping.min;$('mapping-max').value=mapping.max;$('mapping-curve').value=mapping.curve;$('mapping-amplitude').value=mapping.amplitude;
+  $('mapping-min').value=mapping.min;$('mapping-max').value=mapping.max;$('mapping-curve').value=mapping.curve;
 }
 function applyMapping(mapping) {
   mappingSettings.set(store.get().dataset,mapping);store.update({audio:{...store.get().audio,mapping}});mappingControls(mapping);
@@ -54,7 +54,7 @@ function applyMapping(mapping) {
 $('mapping-apply').addEventListener('click',()=>{
   const min=Number($('mapping-min').value),max=Number($('mapping-max').value),curve=$('mapping-curve').value;
   if(!$('mapping-min').value||!$('mapping-max').value||!Number.isFinite(min)||!Number.isFinite(max)||min>=max||(curve==='log'&&min<=0)){$('mapping-status').textContent='Use a finite minimum below the maximum. Logarithmic ranges need a positive minimum.';return;}
-  stopLegend();applyMapping({min,max,curve,amplitude:$('mapping-amplitude').value});$('mapping-status').textContent='Mapping applied. The same audio range is used for every frame; values outside it clip.';
+  stopLegend();applyMapping({min,max,curve,amplitude:'coverage'});$('mapping-status').textContent='Mapping applied. The same audio range is used for every frame; values outside it clip.';
 });
 $('mapping-auto').addEventListener('click',()=>{if(!source)return;applyMapping(recommendedMapping(source.manifest));$('mapping-status').textContent='Automatic metadata/whole-sequence range restored.';});
 $('variable').addEventListener('change',event=>{
@@ -282,7 +282,7 @@ function render(state) {
   $('palette-marker').hidden = sample?.value == null;
   $('palette-marker').style.left = `${(sample?.value ?? 0) * 100}%`;
   $('density').textContent = sample ? `${Math.round(sample.density * 100)}% · ${sample.matchedPixels}/${sample.totalPixels} ${profile?.method==='grid'?'cells':'pixels'}` : '—';
-  $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz · logarithmic pitch`;
+  $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz · ${mapped.beatHz.toFixed(1)} beats/s`;
   $('sound-profile').value=state.audio.soundProfile??'auto';
   const soundProfile=SOUND_PROFILES[preferences.voiceProfile];
   $('sound-profile-description').textContent=`${soundProfile.name}. ${soundProfile.description}`;
@@ -423,7 +423,7 @@ for (const [id, preference] of [['coast-cues', 'coastCues'], ['boundary-cues', '
 $('apply-pitch').addEventListener('click', () => {
   const min = Number($('min-hz').value), max = Number($('max-hz').value);
   if (!$('min-hz').value || !$('max-hz').value || !validatePitchRange(min, max)) {
-    $('pitch-error').textContent = 'Use 1000–10000 Hz, with low pitch below high pitch.';
+    $('pitch-error').textContent = 'Use 100–2000 Hz, with low pitch below high pitch.';
     return;
   }
   stopLegend(); $('pitch-error').textContent = `Pitch range set to ${min}–${max} Hz.`;
@@ -525,7 +525,6 @@ async function initialize(id = pendingDataset, index = pendingIndex) {
     const variable=variableSettings.get(id)??variables[0].id;$('variable').value=variable;
     const mapping=mappingSettings.get(id)??recommendedMapping(manifest);mappingControls(mapping);
     $('mapping-status').textContent='Audio range stays fixed across the sequence. Adjust it below or restore automatic mapping.';
-    $('mapping-amplitude').querySelector('[value="intensity"]').disabled=profile.method==='grid';
     $('load-message').hidden = true; $('map').setAttribute('aria-busy','false');
     active = store.get().audio.enabled; surfaceTracker?.reset(store.get().location);
     resample(store.get().location,{dataset:id,variable,timeIndex:index,timestamp:source.frame.timestamp,audio:{...store.get().audio,mapping}});

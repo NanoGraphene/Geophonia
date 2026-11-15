@@ -1,18 +1,18 @@
 // Designed auditory metaphors. Value is always pitch; the variable selects timbre.
 // Manifests may supply sonification.profile (or categoryProfiles) for new sources.
 export const SOUND_PROFILES = {
-  harmonic:{name:'Harmonic ensemble',description:'Balanced harmonic tone for an unspecified variable.',partials:[0,1,.32,.18,.1,.05]},
-  temperature:{name:'Temperature · warm strings',description:'Rounded string-like harmonics; higher temperature means higher pitch.',partials:[0,1,.55,.25,.12,.05]},
-  ozone:{name:'Ozone · glass harmonics',description:'Clear glass-like tone with a bright third and fifth harmonic.',partials:[0,1,.08,.55,.04,.24]},
-  particles:{name:'Fine particles · dry reed',description:'Dry reed-like tone with a dense mix of upper harmonics.',partials:[0,1,.18,.65,.28,.34,.13,.1]},
-  dust:{name:'Dust · grainy reed',description:'Grainy, nasal harmonic texture for dust.',partials:[0,1,.36,.72,.15,.42,.08,.2]},
-  smoke:{name:'Smoke · soft organ',description:'Soft, hollow organ-like harmonics for smoke.',partials:[0,1,.05,.32,.02,.12,.01,.04]},
-  'sea-salt':{name:'Sea salt · rounded shimmer',description:'Rounded, shimmering harmonics for sea-salt particles.',partials:[0,1,.65,.08,.26,.03,.1]},
-  sulfates:{name:'Sulfates · airy flute',description:'Light flute-like tone for sulfate particles.',partials:[0,1,.16,.07,.02,.01]},
-  'carbon-monoxide':{name:'Carbon monoxide · hollow woodwind',description:'Hollow woodwind-like tone, distinct from ozone and fine particles.',partials:[0,1,.02,.48,.01,.2,.01,.08]},
-  'nitrogen-oxides':{name:'Nitrogen oxides · bright brass',description:'Bright brass-like harmonics for nitrogen oxides.',partials:[0,1,.7,.44,.31,.22,.15]},
-  nightlights:{name:'Night lights · crystalline organ',description:'Clear, luminous organ-like harmonics for night-light brightness.',partials:[0,1,.15,.08,.48,.02,.23]},
-  lightning:{name:'Lightning · electric harmonics',description:'Sharp, bright harmonic texture for lightning-mark strength.',partials:[0,1,.45,.68,.12,.36,.05,.22]}
+  harmonic:{name:'Warp engine · balanced',description:'Soft, broad harmonic engine hum for an unspecified variable.',partials:[0,1,.22,.1,.05,.02]},
+  temperature:{name:'Temperature · warm warp drive',description:'Warm rounded engine harmonics; higher temperature raises pitch and beating speed.',partials:[0,1,.32,.12,.05,.02]},
+  ozone:{name:'Ozone · glass harmonics',description:'Soft glass-like overtones over a rounded warp-engine hum.',partials:[0,1,.04,.27,.02,.1]},
+  particles:{name:'Fine particles · dry reed',description:'Textured engine hum with subdued reed-like harmonics.',partials:[0,1,.12,.3,.12,.12,.05,.03]},
+  dust:{name:'Dust · grainy reed',description:'Soft grainy harmonic texture for dust.',partials:[0,1,.22,.35,.06,.18,.03,.08]},
+  smoke:{name:'Smoke · soft organ',description:'Soft, hollow organ-like harmonics for smoke.',partials:[0,1,.03,.16,.01,.05,.005,.02]},
+  'sea-salt':{name:'Sea salt · rounded shimmer',description:'Rounded, shimmering harmonics for sea-salt particles.',partials:[0,1,.38,.04,.12,.01,.04]},
+  sulfates:{name:'Sulfates · airy flute',description:'Light flute-like tone for sulfate particles.',partials:[0,1,.1,.04,.015,.005]},
+  'carbon-monoxide':{name:'Carbon monoxide · hollow woodwind',description:'Hollow woodwind-like tone, distinct from ozone and fine particles.',partials:[0,1,.01,.24,.005,.08,.005,.03]},
+  'nitrogen-oxides':{name:'Nitrogen oxides · bright brass',description:'Rounded brass-like harmonics for nitrogen oxides.',partials:[0,1,.38,.2,.13,.09,.05]},
+  nightlights:{name:'Night lights · crystalline organ',description:'Clear, luminous organ-like harmonics for night-light brightness.',partials:[0,1,.09,.04,.25,.01,.11]},
+  lightning:{name:'Lightning · electric harmonics',description:'Soft electric harmonic texture for lightning-mark strength.',partials:[0,1,.23,.3,.05,.15,.02,.09]}
 };
 
 export function resolveSoundProfile(manifest,variable,override='auto'){

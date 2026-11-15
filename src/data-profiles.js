@@ -30,7 +30,7 @@ export function frameLabel(frame,formatter) {
 }
 export function recommendedMapping(manifest) {
   const scale=manifest.valueScale??{min:0,max:1};
-  return {min:scale.min,max:scale.max,curve:manifest.mapping?.curve??'linear',amplitude:manifest.mapping?.amplitude??'coverage'};
+  return {min:scale.min,max:scale.max,curve:manifest.mapping?.curve??'linear',amplitude:'coverage'};
 }
 
 export function validateManifest(manifest) {

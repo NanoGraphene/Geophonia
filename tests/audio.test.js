@@ -23,7 +23,7 @@ class Context {
  async resume(){this.state='running';}
  async suspend(){this.state='suspended';}
 }
-const prefs={minHz:1000,maxHz:8000,volume:.25};
+const prefs={minHz:200,maxHz:2000,volume:.25};
 const valid={value:.5,density:1,validity:'valid'};
 const missing={value:null,density:0,validity:'no-visual-sample'};
 test('audio is user-started, smooths updates and synchronously closes master on stop',async()=>{
@@ -38,20 +38,44 @@ test('audio is user-started, smooths updates and synchronously closes master on 
 test('all harmonic voices follow the same data pitch instead of leaving fixed drones',async()=>{
  const context=new Context(),engine=new AudioEngine(()=>context);await engine.start();
  engine.update({...valid,value:0},{...prefs,voiceProfile:'temperature'},true);
- assert.deepEqual(engine.dataVoice.oscillators.map(node=>node.frequency.value),[1000,2000,3000,1000]);
+ assert.deepEqual(engine.dataVoice.oscillators.map(node=>node.frequency.value),[200,199.2,400,399.2]);
  engine.update({...valid,value:.5},{...prefs,voiceProfile:'temperature'},true);
- const f=Math.sqrt(1000*8000);
- engine.dataVoice.oscillators.forEach((node,i)=>assert.ok(Math.abs(node.frequency.value-f*[1,2,3,1][i])<1e-8));
+ const f=Math.sqrt(200*2000);
+ engine.dataVoice.oscillators.forEach((node,i)=>assert.ok(Math.abs(node.frequency.value-(f*[1,1,2,2][i]-[0,6.4,0,6.4][i]))<1e-8));
  const wave=engine.oscillator.wave;
  engine.update({...valid,value:.5},{...prefs,voiceProfile:'ozone'},true);
  assert.equal(context.oscillators.length,4,'changing dataset reuses the bounded voice bank');
  assert.notDeepEqual(engine.oscillator.wave.imag,wave.imag,'dataset identity changes harmonics');
  assert.equal(engine.dataVoice.profile,'ozone');assert.ok(Math.abs(engine.oscillator.frequency.value-f)<1e-8,'timbre cannot change the value pitch');engine.stop();
 });
+test('physical carrier differences create increasingly fast beating, independently of density level',async()=>{
+ const context=new Context(),engine=new AudioEngine(()=>context);await engine.start();
+ for(const [value,rate] of [[0,.8],[.5,6.4],[1,12]]){
+   engine.update({...valid,value},prefs,true);
+   const frequencies=engine.dataVoice.oscillators.map(node=>node.frequency.value);
+   assert.ok(Math.abs(frequencies[0]-frequencies[1]-rate)<1e-9);
+   assert.ok(Math.abs(frequencies[2]-frequencies[3]-rate)<1e-9);
+   assert.ok(frequencies[0]<=2000);assert.ok(engine.dataVoice.filter.frequency.value<=4800);
+   assert.ok(engine.dataVoice.oscillators.every(node=>node.detune.value===0),'beating is Hz separation, not static cents detuning');
+   assert.equal(engine.level.gain.value,.03,'value cannot change the density-controlled gain');
+ }
+ engine.update({...valid,density:.25},prefs,true);assert.equal(engine.level.gain.value,.015);
+ engine.update({...valid,density:0},prefs,true);assert.equal(engine.level.gain.value,0);engine.stop();
+});
+test('warp preview isolates beating rate at a steady reference pitch and allows slow beats to develop',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();
+ const duration=engine.legend('warp',{...prefs,voiceProfile:'temperature'}),entries=[...engine.pendingTones];
+ assert.ok(duration>=7500);assert.equal(entries.length,3);
+ entries.forEach((entry,index)=>assert.ok(Math.abs(entry.voice.beatHz-[.8,6.4,12][index])<1e-9));
+ assert.ok(entries.every(entry=>entry.oscillator.frequency.value===Math.sqrt(400000)));
+ assert.ok(entries.every(entry=>entry.oscillator.stopAt-entry.oscillator.startAt>=2.2));
+ assert.ok(entries.every(entry=>entry.gain.gain.events.some(event=>event[0]==='ramp'&&event[1]===.03)));
+ engine.stop();assert.equal(engine.pendingTones.size,0);
+});
 test('upper harmonic voices are limited at the audio-device Nyquist boundary',async()=>{
  const context=new Context();context.sampleRate=44100;
  const engine=new AudioEngine(()=>context);await engine.start();engine.update({...valid,value:1},prefs,true);
- assert.equal(engine.oscillator.frequency.value,8000);
+ assert.equal(engine.oscillator.frequency.value,2000);
  assert.ok(engine.dataVoice.oscillators.every(node=>node.frequency.value<44100/2));
  assert.ok(engine.dataVoice.filter.frequency.value<44100/2);engine.stop();
 });
@@ -87,8 +111,8 @@ test('silence invalidates an in-flight resume and cannot be undone by late compl
 });
 test('a new legend cancels old examples and uses the configured pitch range',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
- engine.legend('pitch',{...prefs,minHz:1000,maxHz:8000});
- assert.deepEqual([...engine.pendingTones].map(o=>o.oscillator.frequency.value),[1000,Math.sqrt(8000000),8000]);
+ engine.legend('pitch',{...prefs,minHz:200,maxHz:2000});
+ assert.deepEqual([...engine.pendingTones].map(o=>o.oscillator.frequency.value),[200,Math.sqrt(400000),2000]);
  const old=[...engine.pendingTones];engine.legend('missing',prefs);
  assert.ok(old.every(e=>e.oscillator.stopped));assert.equal(engine.pendingTones.size,1);
  engine.stop();assert.equal(engine.pendingTones.size,0);
