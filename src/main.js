@@ -10,9 +10,7 @@ import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
-import { ClipSpeech } from './clip-speech.js';
-import { readingPlan } from './speech-plan.js';
-import { InstantSpeech } from './instant-speech.js';
+import { TextSpeech } from './text-speech.js';
 import { loadPlaceNames } from './place-names.js';
 import { stepFrame, keyboardCommand } from './timeline.js';
 import { placeText, valueText, dateText, formattedValue } from './narration-text.js';
@@ -81,54 +79,48 @@ $('import-load').addEventListener('click',()=>{
   }catch(error){$('import-status').textContent=error.message;}
 });
 
-let speechEngine='builtin',voiceWarmTimer;
 function speechStatus(message){$('voice-status').textContent=message;$('expanded-voice-status').textContent=message;}
-function speechBlocked(blocked){$('speech-help').hidden=!blocked;}
-const clipSpeech=new ClipSpeech({onStatus:speechStatus,onActive:active=>audio.setNarrationActive(active),onBlocked:speechBlocked});
-const narrator = new InstantSpeech({
-  onActive: active => audio.setNarrationActive(active),
-  onStatus:speechStatus,onBlocked:speechBlocked,
-  onVoices: (voices, selected) => {
-    if(speechEngine==='native'&&!voices.length)speechEngine='builtin';
-    $('voice-choice').replaceChildren();
-    $('voice-choice').add(new Option('Built-in natural voice · works without system voices','builtin'));
-    for (const voice of voices) $('voice-choice').add(new Option(`${voice.name} · ${voice.lang}${voice.localService===false?' · online':' · device'}`, 'native:'+voice.voiceURI));
-    $('voice-choice').value=speechEngine==='builtin'?'builtin':'native:'+selected;
+const narrator=new TextSpeech({
+  createWorker:()=>new Worker(new URL('./speech-worker.js',import.meta.url),{type:'module'}),
+  player:$('speech-player'),
+  onStatus:speechStatus,
+  onActive:active=>audio.setNarrationActive(active),
+  onDiagnostic:details=>{
+    const printable={...details};for(const key of ['loadMs','generationMs'])if(Number.isFinite(printable[key]))printable[key]=Math.round(printable[key]*10)/10;
+    $('speech-diagnostics').textContent=JSON.stringify({...printable,playerReadyState:$('speech-player').readyState,playerNetworkState:$('speech-player').networkState,wavSupport:$('speech-player').canPlayType('audio/wav')},null,2);
+    $('speech-engine-state').textContent=details.state==='ready'?'eSpeak NG · ready':details.state==='engine error'?'eSpeak NG · failed':'eSpeak NG';
   }
 });
-function stopNarration() { narrator.stop();clipSpeech.stop(); }
-function readSelection(kind) {
+function stopNarration(){narrator.stop();}
+function readSelection(kind){
   stopLegend();
-  const state = store.get();
-  const text = kind === 'place' ? placeText(placeLookup?.(state.location), state.location, placeStatus)
-    : kind === 'test' ? 'Speech is ready.'
-    : state.validity === 'load-error' ? 'The selected frame could not load. Retry the frame or select another date.'
-    : kind === 'date' ? source?frameLabel(source.frame,dateText):dateText(null)
-    : valueText(state, source?.manifest);
-  $('voice-transcript').textContent = text; $('expanded-voice-transcript').textContent = text;
-  stopNarration();
-  if(speechEngine==='builtin')clipSpeech.speak(planReading(kind));else narrator.speak(text);
+  const state=store.get();
+  const text=kind==='place'?placeText(placeLookup?.(state.location),state.location,placeStatus)
+    :kind==='test'?$('speech-text').value
+    :state.validity==='load-error'?'The selected frame could not load. Retry the frame or select another date.'
+    :kind==='date'?source?frameLabel(source.frame,dateText):dateText(null)
+    :valueText(state,source?.manifest);
+  $('voice-transcript').textContent=text;$('expanded-voice-transcript').textContent=text;
+  narrator.speak(text);
 }
-function planReading(kind){return readingPlan(kind,{state:store.get(),manifest:source?.manifest,frame:source?.frame,place:placeLookup?.(store.get().location),placeStatus});}
-$('voice-test').addEventListener('click',()=>readSelection('test'));
-$('map-voice-test').addEventListener('click',()=>readSelection('test'));
-$('expanded-voice-test').addEventListener('click',()=>readSelection('test'));
-for (const button of document.querySelectorAll('[data-read]')) button.addEventListener('click', () => readSelection(button.dataset.read));
-$('voice-stop').addEventListener('click', () => {stopNarration();$('voice-status').textContent='Speech stopped.';});
-$('voice-enabled').addEventListener('change', event => {
-  narrator.setEnabled(event.target.checked);clipSpeech.setEnabled(event.target.checked);
+for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).addEventListener('click',()=>readSelection('test'));
+for(const button of document.querySelectorAll('[data-read]'))button.addEventListener('click',()=>readSelection(button.dataset.read));
+$('voice-stop').addEventListener('click',()=>{stopNarration();speechStatus('Speech stopped.');});
+$('voice-enabled').addEventListener('change',event=>{
+  narrator.setEnabled(event.target.checked);
   for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).disabled=!event.target.checked;
-  $('voice-status').textContent = event.target.checked ? 'Ready · 1 place · 2 value · 3 date' : 'Spoken shortcuts are off.';
+  speechStatus(event.target.checked?'Speech enabled · 1 place · 2 value · 3 date':'Spoken shortcuts are off.');
 });
-$('voice-choice').addEventListener('change',event=>{stopNarration();speechEngine=event.target.value==='builtin'?'builtin':'native';if(speechEngine==='native')narrator.selectVoice(event.target.value.slice(7));speechStatus(speechEngine==='builtin'?'Built-in natural voice ready. Press 1, 2 or 3.':'Device/browser voice selected. Click Test voice to check it.');});
-$('voice-speed').addEventListener('change', event => { stopNarration(); narrator.rate=Number(event.target.value);clipSpeech.rate=Number(event.target.value); });
-$('voice-volume').addEventListener('input',event=>{const volume=Number(event.target.value)/100;narrator.setVolume(volume);clipSpeech.setVolume(volume);$('voice-volume-value').textContent=event.target.value+'%';});
+$('voice-choice').addEventListener('change',event=>{stopNarration();narrator.voice=event.target.value;});
+$('voice-speed').addEventListener('change',event=>{stopNarration();narrator.rate=Number(event.target.value);});
+$('voice-volume').addEventListener('input',event=>{narrator.setVolume(Number(event.target.value)/100);$('voice-volume-value').textContent=event.target.value+'%';});
+narrator.prepare(new URL('./tts-data/',document.baseURI).href).catch(()=>{});
 async function initializePlaces() {
   if ($('retry-places').disabled) return;
   placeStatus='loading';$('retry-places').disabled=true;$('retry-places').hidden=true;
   try { placeLookup=await loadPlaceNames();placeStatus='ready'; }
   catch(error){placeStatus='error';$('retry-places').hidden=false;console.error(error);}
-  finally{$('retry-places').disabled=false;render(store.get());warmCurrentVoice();}
+  finally{$('retry-places').disabled=false;render(store.get());}
 }
 $('retry-places').addEventListener('click',initializePlaces);
 function syncTimeline() {
@@ -151,9 +143,10 @@ for(const id of ['timeline','expanded-timeline']) $(id).addEventListener('input'
 $('time-previous').addEventListener('click',()=>changeTime(pendingIndex-1));
 $('time-next').addEventListener('click',()=>changeTime(pendingIndex+1));
 document.addEventListener('keydown',event=>{
-  const target=event.target;
+  const target=typeof event.target?.closest==='function'?event.target:document.activeElement??document.body;
   const timeline=target.id==='timeline'||target.id==='expanded-timeline';
   const numeric=['1','2','3'].includes(event.key);
+  if(target.closest('audio, video')&&!(pointerInside&&numeric))return;
   const typing=!!target.closest('textarea, input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
   const selecting=!!target.closest('select');
   const editing=typing||(selecting&&!(pointerInside&&numeric));
@@ -227,12 +220,11 @@ function render(state) {
   audio.update(sample, state.audio, active && !legendPlaying, state.surface);
 }
 store.subscribe(render);
-function warmCurrentVoice(){clearTimeout(voiceWarmTimer);if(speechEngine!=='builtin'||document.hidden||!clipSpeech.enabled)return;voiceWarmTimer=setTimeout(()=>{if(!document.hidden&&clipSpeech.enabled)clipSpeech.warm(['phrase:test',...planReading('place'),...planReading('value'),...planReading('date')]);},180);}
 function resample(location = store.get().location, extra = {}) {
   const sample = source ? sampleDataset(source, location, store.get().radius, sampleNeighborhood, {variable:extra.variable??store.get().variable}) : null;
   const surface = geography?.mask.classify(location) ?? { surface: 'unknown', nearCoast: false };
   const state=store.update({ ...extra, location, sample, validity: sample?.validity ?? 'loading', surface: surface.surface, nearCoast: surface.nearCoast });
-  warmCurrentVoice();return state;
+  return state;
 }
 function stopLegend() {
   clearTimeout(legendTimer); audio.cancelLegend(); legendPlaying = false; $('legend-status').textContent = '';
@@ -256,15 +248,16 @@ function select(location, immediate = false, mode = 'relocate') {
   audio.navigationCue({ boundary, crossings }, preferences);
   announce(`${formatLocation(location)}. ${surfaceDescription(state)}. ${sampleDescription(state)}${cue ? ' ' + cue + '.' : ''}`, immediate);
 }
-function silence(message = 'All application audio is silent.') {
-  stopNarration();
-  $('voice-status').textContent='All audio is silent. Press 1, 2 or 3 for another reading.';
-  active = false; starting = false; pointerInside = false; stopLegend(); audio.stop();
-  boundaryTracker.reset(); surfaceTracker?.reset(store.get().location);
-  store.update({ audio: { ...store.get().audio, enabled: false } });
-  $('audio-status').textContent = message; announce(message, true);
+function pauseMapAudio(message='Map audio paused. Your location is preserved.') {
+  active=false;starting=false;pointerInside=false;stopLegend();audio.stop();
+  boundaryTracker.reset();surfaceTracker?.reset(store.get().location);
+  store.update({audio:{...store.get().audio,enabled:false}});
+  $('audio-status').textContent=message;announce(message,true);
 }
-audio.onInterrupted = () => silence('Audio was interrupted. Select Start audio to resume.');
+function silence(message='All application audio is silent.') {
+  stopNarration();speechStatus('All audio is silent. Press 1, 2 or 3 for another reading.');pauseMapAudio(message);
+}
+audio.onInterrupted=()=>pauseMapAudio('Map audio was interrupted. Select Start audio to resume.');
 $('map').addEventListener('keydown', event => {
   if (event.altKey || event.metaKey || event.ctrlKey) return;
   if (['ArrowUp', 'ArrowDown'].includes(event.key) || (event.shiftKey && ['ArrowLeft','ArrowRight'].includes(event.key))) {
@@ -366,7 +359,7 @@ async function startAudio() {
 }
 $('start-audio').addEventListener('click', async () => {
   stopLegend();
-  if (store.get().audio.enabled) silence('Audio paused. Your location is preserved.');
+  if(store.get().audio.enabled)pauseMapAudio();
   else await startAudio();
 });
 $('silence').addEventListener('click', () => silence());
@@ -475,7 +468,8 @@ function layoutMap(){
  $('frame').style.objectPosition='50% 50%';
  boundaryTracker.reset();
 }
-const panel=$('map-panel'), placeholder=document.createComment('map panel position');panel.before(placeholder);
+const panel=$('map-panel'),placeholder=document.createComment('map panel position');panel.before(placeholder);
+const speechPlayer=$('speech-player'),speechPlaceholder=document.createComment('speech player position');speechPlayer.before(speechPlaceholder);
 async function requestFullscreenForMap(){
  const result=await enterBrowserFullscreen(document,$('expanded-dialog'));
  if(!expanded){if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});return;}
@@ -488,7 +482,7 @@ function syncFullscreenControls(){
  $('browser-fullscreen').textContent=entered?'Exit fullscreen':'Enter browser fullscreen';
 }
 $('expand-map').addEventListener('click',()=>{
- pointerInside=false; expanded=true; $('expanded-content').append(panel); $('expanded-dialog').showModal();
+ pointerInside=false; expanded=true; $('expanded-content').append(panel);$('expanded-speech-player').append(speechPlayer); $('expanded-dialog').showModal();
  document.body.classList.add('map-expanded');
  $('expanded-status').textContent='Expanded map view. Requesting browser fullscreen…';
  syncFullscreenControls();layoutMap();render(store.get());$('map').focus();
@@ -499,7 +493,7 @@ function closeExpanded(){
  if(!expanded)return;
  pointerInside=false;expanded=false;
  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
- placeholder.after(panel);$('expanded-dialog').close();
+ placeholder.after(panel);speechPlaceholder.after(speechPlayer);$('expanded-dialog').close();
  document.body.classList.remove('map-expanded');layoutMap();render(store.get());$('expand-map').focus();
  silence('Expanded map closed. Audio paused.');
 }

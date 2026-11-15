@@ -1,0 +1,74 @@
+{
+  "scope": "Built production worker in an isolated browser-like JavaScript realm, with real synthesis and bundled WASM/JavaScript fallback. No graphical browser or speaker verification.",
+  "wasm": {
+    "mode": "WebAssembly",
+    "loadMs": 37.56384500000001,
+    "cases": [
+      {
+        "text": "An unfamiliar sentence: the copper observatory recorded 472.6 units at dawn.",
+        "ms": 39.499634,
+        "duration": 5.982947845804989,
+        "samples": 131924,
+        "peak": 0.834808349609375,
+        "wavBytes": 263892
+      },
+      {
+        "text": "My custom grid is named Zephyr Meadow; its value is minus 18.75 meters.",
+        "ms": 5.9342829999999935,
+        "duration": 5.01968253968254,
+        "samples": 110684,
+        "peak": 0.78350830078125,
+        "wavBytes": 221412
+      },
+      {
+        "text": "The date is 15 November 2026, and this wording was not recorded in advance.",
+        "ms": 6.291909000000004,
+        "duration": 5.504081632653061,
+        "samples": 121365,
+        "peak": 0.775177001953125,
+        "wavBytes": 242774
+      }
+    ],
+    "requests": [
+      "/assets/espeak-ng-Dm2Ws3KF.wasm",
+      "/tts-data/manifest.json",
+      "/tts-data/core.bin.gz",
+      "/tts-data/en_dict.gz"
+    ]
+  },
+  "javascriptFallback": {
+    "mode": "JavaScript fallback",
+    "loadMs": 55.150735,
+    "cases": [
+      {
+        "text": "An unfamiliar sentence: the copper observatory recorded 472.6 units at dawn.",
+        "ms": 235.796948,
+        "duration": 5.982947845804989,
+        "samples": 131924,
+        "peak": 0.834808349609375,
+        "wavBytes": 263892
+      },
+      {
+        "text": "My custom grid is named Zephyr Meadow; its value is minus 18.75 meters.",
+        "ms": 45.193894,
+        "duration": 5.01968253968254,
+        "samples": 110684,
+        "peak": 0.78350830078125,
+        "wavBytes": 221412
+      },
+      {
+        "text": "The date is 15 November 2026, and this wording was not recorded in advance.",
+        "ms": 78.81923299999994,
+        "duration": 5.504081632653061,
+        "samples": 121365,
+        "peak": 0.775177001953125,
+        "wavBytes": 242774
+      }
+    ],
+    "requests": [
+      "/tts-data/manifest.json",
+      "/tts-data/core.bin.gz",
+      "/tts-data/en_dict.gz"
+    ]
+  }
+}

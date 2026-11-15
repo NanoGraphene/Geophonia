@@ -1,0 +1,106 @@
+{
+  "version": "0.2.1",
+  "commit": "6d51a872d54a773e4969d7130fdaed665b2d6d18",
+  "license": "GPL-3.0-or-later",
+  "engineVersion": "eSpeakNG1.52.0",
+  "sourceCommitEvidence": "npmSLSAprovenanceattestation",
+  "coldReadyMs": 65.761472,
+  "synthesisMs": [
+    42.257204,
+    7.812441000000007,
+    4.163192999999978,
+    5.5426490000000115,
+    3.336159000000009
+  ],
+  "pcm": "monoInt16 at22050Hz",
+  "EnglishRuntimeRawBytes": 956053,
+  "EnglishRuntimeGzipBytes": 645231,
+  "assets": [
+    {
+      "name": "dist/browser.js",
+      "bytes": 3355,
+      "gzipBytes": 1443,
+      "sha256": "732a6fcae7ee5da1617bdc0ade10fddcd3705e1127cab515d5b8c9b931d7f645"
+    },
+    {
+      "name": "dist/core-w4y-vCu9.js",
+      "bytes": 20683,
+      "gzipBytes": 6870,
+      "sha256": "3839e1375ddf3aa410591465b38250f9bc52d53190a5357568f7c7fb1cf269df"
+    },
+    {
+      "name": "wasm/espeak-ng.js",
+      "bytes": 70301,
+      "gzipBytes": 19876,
+      "sha256": "54a96f28ea3eeb86ca96abddeda0c62f1a34d3ce1ec5bdd68a8725730c187efa"
+    },
+    {
+      "name": "wasm/espeak-ng.wasm",
+      "bytes": 379182,
+      "gzipBytes": 156547,
+      "sha256": "9c7c358cfdd4efcaa35f79f6de2c01332ad60cb9b04ace51672e1ad94ac3d6ec"
+    },
+    {
+      "name": "espeak-ng-data/manifest.json",
+      "bytes": 25319,
+      "gzipBytes": 3223,
+      "sha256": "072a3ba08574d527287410fba09d3ae8e4f9664a816c82e8569e985f3fcae053"
+    },
+    {
+      "name": "espeak-ng-data/core.bin.gz",
+      "bytes": 349220,
+      "gzipBytes": 349226,
+      "sha256": "0caa44c9369df50948342b74d4e65f0fc54c284533ec38484da6f7d10da5fec4"
+    },
+    {
+      "name": "espeak-ng-data/en_dict.gz",
+      "bytes": 107993,
+      "gzipBytes": 108046,
+      "sha256": "cbd76e7f51b0406ba4c1974f7c156c6153daaced77dee2292690f81ed96e4f86"
+    }
+  ],
+  "fallback": {
+    "name": "wasm2js/staticasmJS",
+    "WebAssemblyExplicitlyDisabled": true,
+    "stringCodeGenerationDisabledAlsoPasses": true,
+    "coldReadyMs": 114.679664,
+    "synthesisMs": [
+      300.22371499999997,
+      147.252391,
+      50.060974999999985
+    ],
+    "bitIdenticalPCMtoWASM": true,
+    "assets": [
+      {
+        "name": "dist/wasm2js.js",
+        "bytes": 948,
+        "gzipBytes": 493
+      },
+      {
+        "name": "wasm/espeak-ng.legacy.js",
+        "bytes": 66609,
+        "gzipBytes": 18328
+      },
+      {
+        "name": "wasm/espeak-ng.legacy.wasm.js",
+        "bytes": 2685504,
+        "gzipBytes": 297905
+      },
+      {
+        "name": "espeak-ng-data/en_dict.gz",
+        "bytes": 107993,
+        "gzipBytes": 108046
+      }
+    ],
+    "strictRuntimeFlags": [
+      "--disallow-code-generation-from-strings"
+    ]
+  },
+  "browserFactoryProofs": [
+    "browser-data-path-benchmark.json",
+    "browser-data-path-asmjs-benchmark.json"
+  ],
+  "tarballIntegrityVerified": true,
+  "scope": "Real offline Node CPU synthesis of previously unseen sentences. The browser data-loader API was tested using fake fetch, real Response objects and gzip DecompressionStream. No actual Firefox playback or human listening verification was available. WAV proofs are research artifacts only, not application clips.",
+  "runtimeDelivery": "English-only data plus worker/WASM; static JavaScript fallback is loaded only if needed. No speech recordings or neural model."
+}

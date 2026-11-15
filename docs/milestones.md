@@ -102,3 +102,7 @@ Nine usable 2D catalog profiles now share metadata-driven sampling, units, speec
 ## 0.6.1 — Reliable lightweight speech in Firefox on Linux
 
 Default structured speech uses a local static natural-voice clip bank instead of the system Speech Synthesis service. No model/runtime downloads are needed. Added independent Speech volume100%, visible Test voice controls, correct number-key handling from checkbox/retained selector focus, bounded browser-voice startup/retry, paused-engine recovery and actionable blocked-audio feedback. Unit/date/place plans preserve missing/zero values and date precision. Source model/SDK stay in the offline compiler only. Reproduction and verification: `docs/speech-bank.json`, `scripts/build-speech-bank.mjs`, engine/plan/asset tests. 119 automated checks and full Ogg asset validation pass. Actual Firefox listening remains a manual check.
+
+##0.6.2 — Input-agnostic runtime TTS
+
+Replaces the rejected recording bank with arbitrary-text eSpeak NG synthesis in a worker. English startup assets are roughly1MB, with an on-demand static JavaScript fallback. Each request creates fresh PCM/WAV for a persistent native audio player; exact media/engine errors are visible, and blocked autoplay retains a direct Play action. Added editable freeform speech input, independent map/speech interruption handling and DOM/event regressions. All recordings, clip/token plans and recording compiler are removed.109 tests plus production-worker WASM/fallback synthesis verification pass; actual Firefox listening remains unverified.
