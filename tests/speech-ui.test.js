@@ -54,21 +54,23 @@ test('startup preloads Phonon; shortcuts stream arbitrary text and native replay
   assert.equal(dialog.querySelector('.expanded-time').closest('#map-hud'),byId('map-hud'));assert.ok(dialog.querySelector('.expanded-toolbar').closest('#expanded-menu'));
   byId('expanded-menu').open=true;byId('expanded-menu').querySelector('summary').focus();const menuEscape=new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true});window.document.dispatchEvent(menuEscape);assert.equal(menuEscape.defaultPrevented,true);assert.equal(byId('expanded-menu').open,false);assert.equal(dialog.open,true);
   byId('close-expanded').click();assert.equal(byId('map-hud').hidden,true);assert.equal(dialog.open,false);assert.equal(window.document.activeElement,byId('expand-map'));assert.equal(byId('map').style.width,'');
-  // Exercise the real tutorial wiring, including right-click, spoken keys and modal relocation.
-  window.document.querySelector('[data-start-tutorial]').click();await until(()=>spoken.at(-1)?.includes('Step 1 of'));
-  byId('tutorial-next').click();assert.equal(byId('tutorial-next').disabled,true);
-  map.dispatchEvent(new window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}));await until(()=>!byId('tutorial-next').disabled);assert.equal(contexts.length,2,'right-click creates the map audio context');
-  byId('tutorial-next').click();map.focus();map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));assert.equal(byId('tutorial-next').disabled,false);
+  // The compact tour groups startup/movement and all three readings into two practices.
+  window.document.querySelector('[data-start-tutorial]').click();await until(()=>spoken.at(-1)?.includes('Step 1 of 3'));
+  assert.equal(byId('tutorial-next').disabled,true);
+  map.dispatchEvent(new window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}));await until(()=>contexts.length===2);map.focus();map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));await until(()=>!byId('tutorial-next').disabled);
+  byId('tutorial-next').click();assert.match(byId('tutorial-title').textContent,/1, 2 and 3/);
   for(const key of ['1','2','3']){
-    byId('tutorial-next').click();assert.equal(byId('tutorial-next').disabled,true);map.focus();const count=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key,bubbles:true}));await until(()=>spoken.length>count&&!byId('tutorial-next').disabled);
+    map.focus();const count=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key,bubbles:true}));await until(()=>spoken.length>count);await new Promise(r=>setTimeout(r,0));assert.equal(byId('tutorial-next').disabled,key!=='3');
   }
-  byId('tutorial-next').click();assert.equal(byId('tutorial-next').disabled,true);map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));await until(()=>!byId('tutorial-next').disabled);
-  while(byId('tutorial-title').textContent!=='Use the expanded map'){
-    if(!byId('tutorial-skip').hidden)byId('tutorial-skip').click();else byId('tutorial-next').click();
-  }
-  byId('expand-map').click();await new Promise(r=>setTimeout(r,0));assert.ok(dialog.contains(byId('tutorial')));assert.equal(byId('tutorial-next').disabled,false);
-  byId('tutorial-next').click();assert.equal(dialog.contains(byId('tutorial')),false);assert.equal(dialog.open,false);assert.equal(byId('tutorial-next').disabled,true);
-  window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(byId('tutorial-next').disabled,false);const quiet=spoken.length;await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,quiet,'Escape does not restart instructions');
-  byId('tutorial-next').click();byId('tutorial-next').click();assert.equal(byId('tutorial').hidden,true);assert.deepEqual(errors,[]);
+  byId('tutorial-next').click();assert.equal(byId('tutorial-title').textContent,'Ready to explore');
+  byId('expand-map').click();await new Promise(r=>setTimeout(r,0));assert.ok(dialog.contains(byId('tutorial')));
+  // 9 is explicit speech even with automatic announcements and tour narration off.
+  const auto=window.document.querySelector('[data-auto-announcements]');if(byId('ui-announcements').checked)auto.click();
+  if(byId('tutorial-voice').checked)byId('tutorial-voice').click();
+  map.focus();const guideCount=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'9',bubbles:true,cancelable:true}));await until(()=>spoken.length>guideCount);assert.match(spoken.at(-1),/^Welcome to Geophonia/);assert.equal(spoken.at(-1),byId('full-guide-text').textContent);assert.ok(byId('voice-transcript').textContent.length<200,'the toolbar stays compact while the guide is read');await new Promise(r=>setTimeout(r,150));assert.match(spoken.at(-1),/^Welcome to Geophonia/,'pending focus speech cannot interrupt the complete guide');
+  window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));const quiet=spoken.length;await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,quiet,'Escape does not restart the guide');
+  byId('close-expanded').click();input.focus();const typing=spoken.length;input.dispatchEvent(new window.KeyboardEvent('keydown',{key:'9',bubbles:true}));assert.equal(spoken.length,typing,'9 in a typing field is never intercepted');
+  byId('tutorial-next').click();assert.equal(byId('tutorial').hidden,true);
+  byId('tab-help').click();byId('panel-help').querySelector('[data-read-guide]').click();await until(()=>spoken.at(-1)===byId('full-guide-text').textContent);assert.deepEqual(errors,[]);
  }finally{window.dispatchEvent(new window.Event('pagehide'));window.close();}
 });

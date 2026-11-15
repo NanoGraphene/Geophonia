@@ -21,71 +21,57 @@ function fixture(overrides={}){
   return {dom,document,c,spoken,calls,workspace,tour,$,skipTo,close};
 }
 
-test('tour is opt-in, has no startup speech, and waits for successful actions without auto-advancing',()=>{
+test('three short steps are opt-in and wait only for the essential actions',()=>{
   const f=fixture();try{
+    assert.equal(TUTORIAL_STEPS.length,3);assert.ok(TUTORIAL_STEPS.every(step=>step.text.split(/\s+/).length<=40));
     assert.equal(f.tour.active,false);assert.equal(f.$('tutorial').hidden,true);assert.deepEqual(f.spoken,[]);
-    f.document.querySelector('[data-start-tutorial]').click();assert.equal(f.tour.stepId,'welcome');assert.match(f.spoken[0],/Step 1/);
-    f.$('tutorial-next').click();assert.equal(f.tour.stepId,'audio');assert.equal(f.$('tutorial-next').disabled,true);
-    f.$('tutorial-next').click();assert.equal(f.tour.stepId,'audio');
-    f.tour.notify('location-moved');assert.equal(f.$('tutorial-next').disabled,true,'unrelated actions do not complete a lesson');
-    const voiceCount=f.spoken.length;f.tour.notify('audio-started');assert.equal(f.$('tutorial-next').disabled,false);assert.equal(f.tour.stepId,'audio');assert.equal(f.spoken.length,voiceCount,'success cannot cut off actual data audio');
-    f.$('tutorial-next').click();assert.equal(f.tour.stepId,'move');assert.equal(f.document.activeElement,f.$('tutorial-title'));
+    f.document.querySelector('[data-start-tutorial]').click();assert.equal(f.tour.stepId,'explore');assert.match(f.spoken[0],/Step 1 of 3/);
+    assert.match(f.spoken[0],/Press 9/);assert.equal(f.$('tutorial-next').disabled,true);
+    f.tour.notify('read-place');assert.equal(f.$('tutorial-next').disabled,true);
+    f.tour.notify('audio-started');assert.equal(f.$('tutorial-next').disabled,true,'movement is still required');
+    const count=f.spoken.length;f.tour.notify('location-moved');assert.equal(f.$('tutorial-next').disabled,false);assert.equal(f.spoken.length,count,'success cannot interrupt data sound');
+    f.$('tutorial-next').click();assert.equal(f.tour.stepId,'read');assert.equal(f.document.activeElement,f.$('tutorial-title'));
   }finally{f.close();}
 });
 
-test('practice reveals actual controls; tab and two shoreline lessons require the requested actions',()=>{
+test('all three readings share one step and finish requires no additional practice',()=>{
   const f=fixture();try{
-    f.tour.start();f.workspace.setCollapsed(true);f.skipTo('tabs');assert.equal(f.workspace.isCollapsed,false);assert.equal(f.$('tutorial-next').disabled,true);
-    f.$('tutorial-practice').click();assert.equal(f.document.activeElement,f.$('tab-data'));assert.equal(f.workspace.activeTab,'navigate');
-    f.$('tab-data').click();assert.equal(f.$('tutorial-next').disabled,false);
-    f.skipTo('coast');assert.equal(f.workspace.activeTab,'help');
-    const land=f.document.querySelector('[data-legend="coast-land"]');assert.equal(land.closest('details').open,true);assert.ok(land.classList.contains('tutorial-target'));
-    f.$('tutorial-practice').click();assert.equal(f.document.activeElement,land);
-    f.tour.notify('legend-coast-land');assert.equal(f.$('tutorial-next').disabled,true);
-    f.$('tutorial-practice').click();assert.equal(f.document.activeElement,f.document.querySelector('[data-legend="coast-water"]'));
-    f.tour.notify('legend-coast-water');assert.equal(f.$('tutorial-next').disabled,false);
+    f.tour.start();f.skipTo('read');f.$('tutorial-practice').click();assert.equal(f.document.activeElement,f.$('map'));
+    for(const action of ['read-place','read-value']){f.tour.notify(action);assert.equal(f.$('tutorial-next').disabled,true);}
+    f.tour.notify('read-value');assert.match(f.$('tutorial-feedback').textContent,/2 of 3/,'repeating a reading cannot count twice');
+    f.tour.notify('read-date');assert.equal(f.$('tutorial-next').disabled,false);
+    f.$('tutorial-next').click();assert.equal(f.tour.stepId,'finish');assert.equal(f.$('tutorial-next').disabled,false);assert.match(f.$('tutorial-instructions').textContent,/Press 9/);
+    f.$('tutorial-next').click();assert.equal(f.tour.active,false);assert.equal(f.document.querySelectorAll('.tutorial-target').length,0);
   }finally{f.close();}
+  const playing=fixture({audioEnabled:true});try{playing.tour.start();assert.equal(playing.$('tutorial-next').disabled,true);playing.tour.notify('location-moved');assert.equal(playing.$('tutorial-next').disabled,false);}finally{playing.close();}
 });
 
-test('time and dataset steps wait for a different successfully loaded frame, not merely an input event',()=>{
-  const f=fixture();try{
-    f.tour.start();f.skipTo('time');f.tour.notify('frame-ready',{dataset:f.c.dataset,index:0});assert.equal(f.$('tutorial-next').disabled,true);
-    f.tour.notify('frame-ready',{dataset:f.c.dataset,index:1});assert.equal(f.$('tutorial-next').disabled,false);
-    f.skipTo('dataset');f.tour.notify('frame-ready',{dataset:f.c.dataset,index:2});assert.equal(f.$('tutorial-next').disabled,true);
-    f.tour.notify('frame-ready',{dataset:'svs-5147',index:0});assert.equal(f.$('tutorial-next').disabled,false);
-  }finally{f.close();}
-  const single=fixture({frameCount:1});try{single.tour.start();single.skipTo('time');assert.equal(single.$('tutorial-next').disabled,false);assert.match(single.$('tutorial-feedback').textContent,/no time sequence/);}finally{single.close();}
-});
-
-test('speech is optional, respects master mute, and only the explicit enable control unmutes it',()=>{
+test('speech is optional and only the explicit enable control unmutes the master voice',()=>{
   const f=fixture({speechEnabled:false,speechVolume:0});try{
     f.tour.start();assert.equal(f.spoken.length,0);assert.equal(f.$('tutorial-enable-audio').hidden,false);
     f.$('tutorial-enable-audio').click();assert.equal(f.spoken.length,1);assert.equal(f.$('tutorial-enable-audio').hidden,true);
-    f.$('tutorial-voice').click();const count=f.spoken.length;f.$('tutorial-next').click();assert.equal(f.spoken.length,count);
+    f.$('tutorial-voice').click();const count=f.spoken.length;f.$('tutorial-skip').click();assert.equal(f.spoken.length,count);
     f.$('tutorial-voice').click();assert.equal(f.spoken.length,count+1);
     f.tour.pause();assert.match(f.$('tutorial-speech-status').textContent,/silenced/);assert.equal(f.tour.active,true);assert.equal(f.spoken.length,count+1);
   }finally{f.close();}
 });
 
-test('tour stays inside expanded dialog, returns to standard view and cleans highlights and focus on exit',()=>{
+test('tour remains reachable in expanded view and restores focus and highlights on exit',()=>{
   const f=fixture();try{
-    const launcher=f.document.querySelector('[data-start-tutorial]');launcher.focus();f.tour.start();f.skipTo('expand');
-    f.c.expanded=true;f.$('expanded-dialog').setAttribute('open','');f.tour.relocate();f.tour.notify('map-expanded');
-    assert.ok(f.$('expanded-dialog').contains(f.$('tutorial')));assert.equal(f.$('tutorial-next').disabled,false);
-    f.$('tutorial-next').click();assert.equal(f.tour.stepId,'silence');assert.equal(f.$('expanded-dialog').contains(f.$('tutorial')),false);assert.equal(f.$('tutorial-next').disabled,true,'closing expanded view cannot count as deliberate silence');
-    f.tour.notify('silenced');f.$('tutorial-next').click();assert.equal(f.tour.stepId,'finish');f.$('tutorial-next').click();
-    assert.equal(f.tour.active,false);assert.equal(f.$('tutorial').hidden,true);assert.equal(f.document.querySelectorAll('.tutorial-target').length,0);assert.equal(f.document.activeElement,launcher);assert.equal(f.calls.exits,1);
+    const launcher=f.document.querySelector('[data-start-tutorial]');launcher.focus();f.tour.start();
+    f.c.expanded=true;f.$('expanded-dialog').setAttribute('open','');f.tour.relocate();assert.ok(f.$('expanded-dialog').contains(f.$('tutorial')));
+    f.c.expanded=false;f.tour.relocate();assert.equal(f.$('expanded-dialog').contains(f.$('tutorial')),false);
+    f.tour.exit();assert.equal(f.$('tutorial').hidden,true);assert.equal(f.document.querySelectorAll('.tutorial-target').length,0);assert.equal(f.document.activeElement,launcher);assert.equal(f.calls.exits,1);
   }finally{f.close();}
 });
 
-test('dedicated shortcuts leave digits and map keys alone; Back, Skip and Repeat never trap the user',()=>{
+test('Back, Skip and Repeat stay available and tour shortcuts leave reading digits alone',()=>{
   const f=fixture();try{
     const key=(value,options={})=>{const e=new f.dom.window.KeyboardEvent('keydown',{key:value,bubbles:true,cancelable:true,...options});f.document.dispatchEvent(e);return e;};
-    key('t',{altKey:true});assert.equal(f.tour.active,true);key('n',{altKey:true});assert.equal(f.tour.stepId,'audio');
-    assert.equal(key('1').defaultPrevented,false);assert.equal(key('ArrowRight').defaultPrevented,false);
-    key('n',{altKey:true});assert.equal(f.tour.stepId,'audio');f.$('tutorial-skip').click();assert.equal(f.tour.stepId,'move');
-    key('p',{altKey:true});assert.equal(f.tour.stepId,'audio');const count=f.spoken.length;key('r',{altKey:true});assert.equal(f.spoken.length,count+1);
-    key('t',{altKey:true});assert.equal(f.tour.active,false);
-    assert.equal(f.$('tutorial-progress-bar').max,TUTORIAL_STEPS.length);
+    key('t',{altKey:true});assert.equal(f.tour.active,true);assert.equal(f.tour.stepId,'explore');
+    for(const value of ['1','2','3','9','ArrowRight'])assert.equal(key(value).defaultPrevented,false);
+    key('n',{altKey:true});assert.equal(f.tour.stepId,'explore');f.$('tutorial-skip').click();assert.equal(f.tour.stepId,'read');
+    key('p',{altKey:true});assert.equal(f.tour.stepId,'explore');const count=f.spoken.length;key('r',{altKey:true});assert.equal(f.spoken.length,count+1);
+    key('t',{altKey:true});assert.equal(f.tour.active,false);assert.equal(f.$('tutorial-progress-bar').max,3);
   }finally{f.close();}
 });

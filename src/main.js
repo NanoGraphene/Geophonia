@@ -15,6 +15,7 @@ import { PhononSpeech } from './phonon-speech.js';
 import {setupWorkspaceUI} from './workspace-ui.js';
 import {createUIAnnouncements} from './ui-announcements.js';
 import {setupGuidedTutorial} from './guided-tutorial.js';
+import {FULL_GUIDE_TEXT,isFullGuideShortcut} from './full-guide.js';
 import { loadPlaceNames } from './place-names.js';
 import { stepFrame, keyboardCommand } from './timeline.js';
 import { placeText, valueText, dateText, formattedValue } from './narration-text.js';
@@ -98,7 +99,7 @@ const narrator=new PhononSpeech({
     const printable={...details};for(const key of ['loadMs','generationMs','firstPCMms','estimatedPlaybackStartMs'])if(Number.isFinite(printable[key]))printable[key]=Math.round(printable[key]*10)/10;
     $('speech-diagnostics').textContent=JSON.stringify({...printable,playerReadyState:$('speech-player').readyState,playerNetworkState:$('speech-player').networkState,wavSupport:$('speech-player').canPlayType('audio/wav')},null,2);
     $('speech-engine-state').textContent=details.state==='engine error'?'Phonon · failed':details.engineReady?'Phonon · ready':'Phonon · loading';
-    if(details.state==='ready'&&!tutorial?.active&&interfaceInteracted&&lastSpeechKind!=='data')uiAnnouncements?.announceFocused();
+    if(details.state==='ready'&&!tutorial?.active&&interfaceInteracted&&!['data','guide'].includes(lastSpeechKind))uiAnnouncements?.announceFocused();
   }
 });
 function speakInterface(text){lastSpeechKind='interface';$('interface-status').textContent=text;return narrator.speak(text);}
@@ -171,6 +172,15 @@ function readSelection(kind){
   $('voice-transcript').textContent=text;$('expanded-voice-transcript').textContent=text;
   narrator.speak(text).then(accepted=>{if(accepted&&(kind==='place'||source))tutorial?.notify(`read-${kind}`);});
 }
+function readFullGuide(){
+  tutorial?.interrupt();cancelInterfaceFeedback();uiAnnouncements?.cancel();stopLegend();lastSpeechKind='guide';
+  const message='Reading the complete guide. Escape stops speech. Written guide: Help → Complete explanation.';
+  $('voice-transcript').textContent=message;$('expanded-voice-transcript').textContent=message;tutorial?.status(message);
+  narrator.speak(FULL_GUIDE_TEXT);
+}
+$('full-guide-text').textContent=FULL_GUIDE_TEXT;
+for(const button of document.querySelectorAll('[data-read-guide]'))button.addEventListener('click',readFullGuide);
+document.addEventListener('keydown',event=>{if(isFullGuideShortcut(event)){event.preventDefault();readFullGuide();}});
 for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).addEventListener('click',()=>readSelection('test'));
 for(const button of document.querySelectorAll('[data-read]'))button.addEventListener('click',()=>readSelection(button.dataset.read));
 $('voice-stop').addEventListener('click',()=>{stopNarration();speechStatus('Speech stopped.');});

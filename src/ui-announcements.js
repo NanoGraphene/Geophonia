@@ -43,7 +43,7 @@ const sentence=parts=>parts.map(clean).filter(Boolean).join('. ')+'.';
 export function describeControl(element){
  const control=controlFor(element);if(!control)return '';
  const tag=control.tagName,type=(control.getAttribute('type')||'text').toLowerCase(),role=control.getAttribute('role'),name=nameOf(control);
- if(role==='application'||control.id==='map')return sentence([name||'Map explorer','Arrows navigate space and time. 1 reads place, 2 value, 3 date. Tab leaves the map']);
+ if(role==='application'||control.id==='map')return sentence([name||'Map explorer','Arrows navigate space and time. 1 reads place, 2 value, 3 date. 9 reads the full guide. Tab leaves the map']);
  const disabled=control.disabled||control.getAttribute('aria-disabled')==='true'?'Unavailable':'';
  if(role==='tab')return sentence([name,'Tab',control.getAttribute('aria-selected')==='true'?'Selected':'Not selected',disabled]);
  if(role==='dialog')return sentence([name||'Dialog','Dialog']);
