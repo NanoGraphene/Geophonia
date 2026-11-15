@@ -247,6 +247,9 @@ function render(state) {
   $('location').textContent = formatLocation(state.location);
   const namedPlace=placeLookup?.(state.location);
   $('place-name').textContent=namedPlace?.name ?? (placeStatus==='loading'?'Loading place names…':placeStatus==='error'?'Place names unavailable':'No mapped place name');
+  $('hud-place').textContent=$('place-name').textContent;
+  $('hud-coordinates').textContent=formatLocation(state.location);
+  $('hud-feature-label').textContent=$('feature-label').textContent;
   $('mapping-unit').textContent=source?.manifest.valueScale?.unit??'source value units';
   // Do not replace a user's partially typed coordinate while editing the form.
   if (document.activeElement !== $('latitude')) $('latitude').value = state.location.lat.toFixed(2);
@@ -256,6 +259,11 @@ function render(state) {
   const sample = state.sample;
   const mapped = mapAudio(sample, state.audio);
   $('feature').textContent=source?formattedValue(sample,source.manifest):'—';
+  $('hud-value').textContent=$('feature').textContent;
+  $('hud-marker').hidden=sample?.value==null;
+  $('hud-marker').style.left=`${(sample?.value??0)*100}%`;
+  $('hud-palette').setAttribute('aria-valuenow',String((sample?.value??0)*100));
+  $('hud-palette').setAttribute('aria-valuetext',sample?.value==null?'No data':$('hud-value').textContent);
   $('palette-marker').hidden = sample?.value == null;
   $('palette-marker').style.left = `${(sample?.value ?? 0) * 100}%`;
   $('density').textContent = sample ? `${Math.round(sample.density * 100)}% · ${sample.matchedPixels}/${sample.totalPixels} ${profile?.method==='grid'?'cells':'pixels'}` : '—';
@@ -434,6 +442,7 @@ $('start-audio').addEventListener('click', async () => {
 $('silence').addEventListener('click', () => silence());
 document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
+  if(expanded&&$('expanded-menu').open){event.preventDefault();$('expanded-menu').open=false;$('expanded-menu').querySelector('summary').focus();}
   if(!expanded&&workspace&&!workspace.isCollapsed&&document.activeElement?.closest('#controls-panel'))workspace.setCollapsed(true);
   silence();
 });
@@ -497,6 +506,8 @@ async function initialize(id = pendingDataset, index = pendingIndex) {
     const rgb=profile.matching!=='chromatic'&&source.palette?.length?source.palette:null;
     $('palette-track').style.background=rgb?`linear-gradient(90deg,${rgb.map(c=>'rgb('+c.join(',')+')').join(',')})`:'linear-gradient(90deg,rgb(30,60,110),rgb(250,235,40))';
     $('scale-low').textContent=String(manifest.valueScale?.min??0);$('scale-high').textContent=String(manifest.valueScale?.max??1);
+    $('hud-palette').style.background=$('palette-track').style.background;
+    $('hud-scale-low').textContent=$('scale-low').textContent;$('hud-scale-high').textContent=$('scale-high').textContent;
     const variables=profile.categories??[{id:'value',name:profile.name}];
     $('variable').replaceChildren();for(const variable of variables)$('variable').add(new Option(variable.name,variable.id));
     const variable=variableSettings.get(id)??variables[0].id;$('variable').value=variable;
@@ -556,7 +567,7 @@ function syncFullscreenControls(){
  $('browser-fullscreen').textContent=entered?'Exit fullscreen':'Enter browser fullscreen';
 }
 $('expand-map').addEventListener('click',()=>{
- pointerInside=false; expanded=true; $('expanded-content').append(panel);$('expanded-speech-player').append(speechPlayer); $('expanded-dialog').showModal();
+ pointerInside=false; expanded=true;$('map-hud').hidden=false;$('expanded-menu').open=false; $('expanded-content').append(panel);$('expanded-speech-player').append(speechPlayer); $('expanded-dialog').showModal();
  document.body.classList.add('map-expanded');
  $('expanded-status').textContent='Expanded map view. Requesting browser fullscreen…';
  syncFullscreenControls();layoutMap();render(store.get());$('map').focus();
@@ -565,7 +576,7 @@ $('expand-map').addEventListener('click',()=>{
 });
 function closeExpanded(){
  if(!expanded)return;
- pointerInside=false;expanded=false;
+ pointerInside=false;expanded=false;$('map-hud').hidden=true;$('expanded-menu').open=false;
  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
  placeholder.after(panel);speechPlaceholder.after(speechPlayer);$('expanded-dialog').close();
  document.body.classList.remove('map-expanded');layoutMap();render(store.get());$('expand-map').focus();
