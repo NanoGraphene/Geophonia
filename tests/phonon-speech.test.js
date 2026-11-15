@@ -28,6 +28,18 @@ const speakMessages=w=>w.messages.filter(m=>m.type==='speak');
 const chunk=(id,value=.25)=>({type:'chunk',id,samples:new Float32Array(1920).fill(value),sampleRate:24000,index:0,firstChunkMs:80});
 const complete=id=>({type:'complete',id,wav:new Uint8Array([82,73,70,70]).buffer,sampleRate:24000,samples:3840,duration:.16,generationMs:100,firstChunkMs:80,chunks:2});
 
+test('speech ownership covers model loading, generation gaps and the complete buffered playback',async()=>{
+ const f=fixture();let idle=0;f.speech.onIdle=()=>idle++;
+ const pending=f.speech.speak('Tutorial instructions must not be interrupted.');assert.equal(f.speech.speaking,true,'owned before model readiness');
+ const worker=f.workers[0];worker.emit({type:'ready',mode:'CPU/WASM',loadMs:1});await pending;await flush();
+ const id=f.speech.serial;worker.emit(chunk(id));await flush();f.contexts[0].nodes[0].end();
+ assert.equal(f.speech.speaking,true,'a streaming gap is not the end of an utterance');assert.equal(idle,0);
+ worker.emit(chunk(id));await flush();worker.emit(complete(id));await flush();assert.equal(f.speech.speaking,true,'generation done still has scheduled audio');
+ f.contexts[0].nodes[1].end();assert.equal(f.speech.speaking,false);assert.equal(idle,1);
+ await f.speech.speak('An explicit new command.');assert.equal(f.speech.speaking,true);f.speech.stop();assert.equal(f.speech.speaking,false);assert.equal(idle,1,'cancel cannot queue idle announcements');
+ f.speech.dispose();
+});
+
 test('startup prepare loads a single reusable model without audio activation or prerendered text',async()=>{
  const f=fixture(),first=f.speech.prepare(),again=f.speech.prepare();assert.equal(first,again);assert.equal(f.workers.length,1);assert.deepEqual(f.workers[0].messages,[{type:'init'}]);assert.equal(f.contexts.length,0);assert.equal(f.player.plays,0);
  f.workers[0].emit({type:'progress',progress:{status:'Downloading model',loaded:10e6,total:65e6}});assert.match(f.statuses.at(-1),/10.0 \/ 65.0 MB/);

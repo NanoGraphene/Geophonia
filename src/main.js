@@ -95,6 +95,7 @@ const narrator=new PhononSpeech({
   player:$('speech-player'),
   onStatus:speechStatus,
   onActive:active=>audio.setNarrationActive(active),
+  onIdle:()=>{if(tutorial?.active&&lastSpeechKind!=='interface'&&document.activeElement?.closest('#tutorial'))uiAnnouncements?.announceFocused();},
   onDiagnostic:details=>{
     const printable={...details};for(const key of ['loadMs','generationMs','firstPCMms','estimatedPlaybackStartMs'])if(Number.isFinite(printable[key]))printable[key]=Math.round(printable[key]*10)/10;
     $('speech-diagnostics').textContent=JSON.stringify({...printable,playerReadyState:$('speech-player').readyState,playerNetworkState:$('speech-player').networkState,wavSupport:$('speech-player').canPlayType('audio/wav')},null,2);
@@ -102,13 +103,14 @@ const narrator=new PhononSpeech({
     if(details.state==='ready'&&!tutorial?.active&&interfaceInteracted&&!['data','guide'].includes(lastSpeechKind))uiAnnouncements?.announceFocused();
   }
 });
-function speakInterface(text){lastSpeechKind='interface';$('interface-status').textContent=text;return narrator.speak(text);}
+function explicitSpeechBusy(){return narrator.speaking&&lastSpeechKind!=='interface';}
+function speakInterface(text){if(explicitSpeechBusy())return false;lastSpeechKind='interface';$('interface-status').textContent=text;return narrator.speak(text);}
 function cancelInterfaceFeedback(){clearTimeout(interfaceFeedbackTimer);interfaceFeedbackTimer=null;}
 uiAnnouncements=createUIAnnouncements({document,
   speak:speakInterface,
   stop:()=>{if(lastSpeechKind==='interface')narrator.stop();},
   isReady:()=>narrator.ready,
-  enabled:()=>narrator.enabled&&narrator.volume>0&&(tutorial?.active?$('tutorial-voice').checked:$('ui-announcements').checked)&&!document.hidden
+  enabled:()=>narrator.enabled&&narrator.volume>0&&!explicitSpeechBusy()&&(tutorial?.active?$('tutorial-voice').checked&&!!document.activeElement?.closest('#tutorial'):$('ui-announcements').checked)&&!document.hidden
 });
 function primeInterfaceAudio(event){
   if(event.target?.closest?.('audio,video'))return;
@@ -173,6 +175,7 @@ function readSelection(kind){
   narrator.speak(text).then(accepted=>{if(accepted&&(kind==='place'||source))tutorial?.notify(`read-${kind}`);});
 }
 function readFullGuide(){
+  if(tutorial?.active){$('tutorial-options').open=false;$('map').focus({preventScroll:true});}
   tutorial?.interrupt();cancelInterfaceFeedback();uiAnnouncements?.cancel();stopLegend();lastSpeechKind='guide';
   const message='Reading the complete guide. Escape stops speech. Written guide: Help → Complete explanation.';
   $('voice-transcript').textContent=message;$('expanded-voice-transcript').textContent=message;tutorial?.status(message);
@@ -182,7 +185,7 @@ $('full-guide-text').textContent=FULL_GUIDE_TEXT;
 for(const button of document.querySelectorAll('[data-read-guide]'))button.addEventListener('click',readFullGuide);
 document.addEventListener('keydown',event=>{if(isFullGuideShortcut(event)){event.preventDefault();readFullGuide();}});
 for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).addEventListener('click',()=>readSelection('test'));
-for(const button of document.querySelectorAll('[data-read]'))button.addEventListener('click',()=>readSelection(button.dataset.read));
+for(const button of document.querySelectorAll('[data-read]'))button.addEventListener('click',()=>{if(button.closest('#tutorial'))$('map').focus({preventScroll:true});readSelection(button.dataset.read);});
 $('voice-stop').addEventListener('click',()=>{stopNarration();speechStatus('Speech stopped.');});
 $('voice-enabled').addEventListener('change',event=>{
   narrator.setEnabled(event.target.checked);
@@ -306,6 +309,7 @@ function render(state) {
   $('start-audio').innerHTML = state.audio.enabled ? '<span aria-hidden="true">Ⅱ</span> Pause audio' : '<span aria-hidden="true">▶</span> Start audio';
   $('start-audio').disabled = !audioSupported || !source || starting;
   $('expanded-audio').disabled = $('start-audio').disabled;
+  $('tutorial-alternative').disabled=$('start-audio').disabled;
   if (!audioSupported) $('audio-status').textContent = 'Web Audio is unavailable. Map navigation and text remain available.';
   else if (!state.audio.enabled) $('audio-status').textContent = 'Audio is off. Start when you’re ready.';
   else if (legendPlaying) $('audio-status').textContent = 'Playing an audio legend example.';
@@ -578,17 +582,19 @@ function layoutMap(){
 const panel=$('map-panel'),placeholder=document.createComment('map panel position');panel.before(placeholder);
 const speechPlayer=$('speech-player'),speechPlaceholder=document.createComment('speech player position');speechPlayer.before(speechPlaceholder);
 async function requestFullscreenForMap(){
- const result=await enterBrowserFullscreen(document,$('expanded-dialog'));
+ const result=await enterBrowserFullscreen(document,$('expanded-root'));
  if(!expanded){if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});return;}
  $('expanded-status').textContent=result.message;
  syncFullscreenControls(); layoutMap();render(store.get());
+ if(tutorial?.active&&[document.body,$('expanded-dialog'),$('expanded-root')].includes(document.activeElement))$('map').focus({preventScroll:true});
 }
 function syncFullscreenControls(){
- const entered=document.fullscreenElement===$('expanded-dialog');
- $('browser-fullscreen').disabled=!entered&&!canUseBrowserFullscreen(document,$('expanded-dialog'));
+ const entered=document.fullscreenElement===$('expanded-root');
+ $('browser-fullscreen').disabled=!entered&&!canUseBrowserFullscreen(document,$('expanded-root'));
  $('browser-fullscreen').textContent=entered?'Exit fullscreen':'Enter browser fullscreen';
 }
-$('expand-map').addEventListener('click',()=>{
+function openExpandedMap(){
+ if(expanded){$('expanded-menu').open=false;$('map').focus({preventScroll:true});if(document.fullscreenElement!==$('expanded-root'))requestFullscreenForMap();return;}
  pointerInside=false; expanded=true;$('map-hud').hidden=false;$('expanded-menu').open=false; $('expanded-content').append(panel);$('expanded-speech-player').append(speechPlayer); $('expanded-dialog').showModal();
  document.body.classList.add('map-expanded');
  $('expanded-status').textContent='Expanded map view. Requesting browser fullscreen…';
@@ -596,9 +602,11 @@ $('expand-map').addEventListener('click',()=>{
  // Request during the original click gesture; restrictions fall back to the expanded dialog.
  tutorial?.relocate();tutorial?.notify('map-expanded');
  requestFullscreenForMap();
-});
+}
+$('expand-map').addEventListener('click',openExpandedMap);
 function closeExpanded(){
  if(!expanded)return;
+ tutorial?.exit();
  pointerInside=false;expanded=false;$('map-hud').hidden=true;$('expanded-menu').open=false;
  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
  placeholder.after(panel);speechPlaceholder.after(speechPlayer);tutorial?.relocate();$('expanded-dialog').close();
@@ -607,7 +615,7 @@ function closeExpanded(){
 }
 $('close-expanded').addEventListener('click',closeExpanded);
 $('expanded-controls').addEventListener('click',()=>{closeExpanded();workspace.showTab(workspace.activeTab,{focus:true});});
-$('expanded-dialog').addEventListener('cancel',event=>{event.preventDefault();closeExpanded();});
+$('expanded-dialog').addEventListener('cancel',event=>{event.preventDefault();if(tutorial?.active){silence();$('map').focus({preventScroll:true});}else closeExpanded();});
 $('expanded-audio').addEventListener('click',()=>$('start-audio').click());
 $('expanded-silence').addEventListener('click',()=>{silence();tutorial?.notify('silenced');});
 $('browser-fullscreen').addEventListener('click',async()=>{
@@ -616,19 +624,18 @@ $('browser-fullscreen').addEventListener('click',async()=>{
 });
 document.addEventListener('fullscreenchange',()=>{
  syncFullscreenControls();
- if(!document.fullscreenElement&&expanded){closeExpanded();return;}
+ if(!document.fullscreenElement&&expanded){if(tutorial?.active){silence('Browser fullscreen exited. The expanded tutorial map remains open.');$('map').focus({preventScroll:true});}else{closeExpanded();return;}}
  layoutMap();render(store.get());
 });
 workspace=setupWorkspaceUI(document,{onChange:()=>{layoutMap();render(store.get());uiAnnouncements.announceFocused();}});
 tutorial=setupGuidedTutorial({document,
   getContext:()=>({dataset:store.get().dataset,timeIndex:store.get().timeIndex,frameCount:catalogs.get(pendingDataset)?.frames.length??0,audioEnabled:store.get().audio.enabled,speechEnabled:narrator.enabled,speechVolume:narrator.volume,expanded,activeTab:workspace.activeTab}),
-  showTab:name=>{if(name)workspace.showTab(name);else workspace.setCollapsed(false);},
-  standardView:closeExpanded,
+  enterMap:openExpandedMap,
   speak:text=>{cancelInterfaceFeedback();uiAnnouncements.cancel();lastSpeechKind='tutorial';return narrator.speak(text);},
   stop:()=>{cancelInterfaceFeedback();uiAnnouncements.cancel();if(lastSpeechKind==='tutorial')narrator.stop();},
   enableSpeech:()=>{narrator.setEnabled(true);$('voice-enabled').checked=true;if(!narrator.volume){narrator.setVolume(.8);$('voice-volume').value=80;$('voice-volume-value').textContent='80%';}for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).disabled=false;},
-  onStart:()=>uiAnnouncements.setEnabled(true),
-  onExit:()=>{uiAnnouncements.setEnabled($('ui-announcements').checked);silence('Tutorial closed. Start map audio when you are ready.');}
+  onStart:()=>{stopNarration();uiAnnouncements.setEnabled(true);uiAnnouncements.cancel();},
+  onExit:()=>{stopNarration();uiAnnouncements.setEnabled($('ui-announcements').checked);uiAnnouncements.cancel();}
 });
 new ResizeObserver(()=>{layoutMap();render(store.get());}).observe($('map-stage'));
 render(store.get()); initialize(); initializeGeography(); initializePlaces();

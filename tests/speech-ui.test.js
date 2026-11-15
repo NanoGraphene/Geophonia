@@ -54,23 +54,38 @@ test('startup preloads Phonon; shortcuts stream arbitrary text and native replay
   assert.equal(dialog.querySelector('.expanded-time').closest('#map-hud'),byId('map-hud'));assert.ok(dialog.querySelector('.expanded-toolbar').closest('#expanded-menu'));
   byId('expanded-menu').open=true;byId('expanded-menu').querySelector('summary').focus();const menuEscape=new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true});window.document.dispatchEvent(menuEscape);assert.equal(menuEscape.defaultPrevented,true);assert.equal(byId('expanded-menu').open,false);assert.equal(dialog.open,true);
   byId('close-expanded').click();assert.equal(byId('map-hud').hidden,true);assert.equal(dialog.open,false);assert.equal(window.document.activeElement,byId('expand-map'));assert.equal(byId('map').style.width,'');
-  // The compact tour groups startup/movement and all three readings into two practices.
-  window.document.querySelector('[data-start-tutorial]').click();await until(()=>spoken.at(-1)?.includes('Step 1 of 3'));
-  assert.equal(byId('tutorial-next').disabled,true);
-  map.dispatchEvent(new window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}));await until(()=>contexts.length===2);map.focus();map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));await until(()=>!byId('tutorial-next').disabled);
-  byId('tutorial-next').click();assert.match(byId('tutorial-title').textContent,/1, 2 and 3/);
-  for(const key of ['1','2','3']){
-    map.focus();const count=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key,bubbles:true}));await until(()=>spoken.length>count);await new Promise(r=>setTimeout(r,0));assert.equal(byId('tutorial-next').disabled,key!=='3');
+  // Starting the tour requests fullscreen synchronously and focuses the real map.
+  let nativeFullscreen=null,fullscreenRequests=0,denyFullscreen=false;
+  Object.defineProperty(window.document,'fullscreenEnabled',{value:true,configurable:true});
+  Object.defineProperty(window.document,'fullscreenElement',{get:()=>nativeFullscreen,configurable:true});
+  const fullscreenRoot=byId('expanded-root');assert.notEqual(fullscreenRoot.tagName,'DIALOG');
+  fullscreenRoot.requestFullscreen=()=>{fullscreenRequests++;if(denyFullscreen)return Promise.reject(new Error('Denied'));nativeFullscreen=fullscreenRoot;window.document.dispatchEvent(new window.Event('fullscreenchange'));return Promise.resolve();};
+  window.document.exitFullscreen=()=>{nativeFullscreen=null;window.document.dispatchEvent(new window.Event('fullscreenchange'));return Promise.resolve();};
+  window.document.querySelector('[data-start-tutorial]').click();
+  assert.equal(fullscreenRequests,1);assert.equal(nativeFullscreen,fullscreenRoot);assert.equal(dialog.open,true);assert.ok(dialog.contains(byId('tutorial')));assert.equal(window.document.activeElement,map);assert.equal(byId('tutorial-details').hidden,true);
+  await until(()=>spoken.at(-1)?.includes('Step 1 of 3'));
+  const intro=spoken.length;byId('tutorial-details-toggle').focus();byId('tutorial-details-toggle').click();await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,intro,'focus labels cannot replace tutorial narration');assert.equal(byId('tutorial-details').hidden,false);
+  byId('expanded-menu').querySelector('summary').focus();await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,intro,'map/menu region announcements cannot interrupt instructions');
+  map.focus();map.dispatchEvent(new window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}));await until(()=>contexts.length===2);map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));await until(()=>!byId('tutorial-next').disabled);
+  byId('tutorial-next').click();assert.match(byId('tutorial-title').textContent,/1, 2 and 3/);assert.equal(window.document.activeElement,map);assert.equal(byId('tutorial-details').hidden,true);assert.equal(byId('tutorial-reading-buttons').hidden,false);
+  const placeButton=byId('tutorial-reading-buttons').querySelector('[data-read="place"]');placeButton.focus();placeButton.click();assert.equal(window.document.activeElement,map);await until(()=>spoken.at(-1)==='Atlantic Ocean.');
+  for(const key of ['2','3']){
+    const count=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key,bubbles:true}));await until(()=>spoken.length>count);await new Promise(r=>setTimeout(r,0));assert.equal(byId('tutorial-next').disabled,key!=='3');
   }
-  byId('tutorial-next').click();assert.equal(byId('tutorial-title').textContent,'Ready to explore');
-  byId('expand-map').click();await new Promise(r=>setTimeout(r,0));assert.ok(dialog.contains(byId('tutorial')));
-  // 9 is explicit speech even with automatic announcements and tour narration off.
+  const reading=spoken.length;byId('tutorial-next').focus();await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,reading,'control feedback cannot cut off a requested map reading');
+  byId('tutorial-next').click();assert.equal(byId('tutorial-title').textContent,'Ready to explore');assert.equal(window.document.activeElement,map);
+  // 9 is explicit speech, including with automatic announcements and tour narration off.
   const auto=window.document.querySelector('[data-auto-announcements]');if(byId('ui-announcements').checked)auto.click();
   if(byId('tutorial-voice').checked)byId('tutorial-voice').click();
-  map.focus();const guideCount=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'9',bubbles:true,cancelable:true}));await until(()=>spoken.length>guideCount);assert.match(spoken.at(-1),/^Welcome to Geophonia/);assert.equal(spoken.at(-1),byId('full-guide-text').textContent);assert.ok(byId('voice-transcript').textContent.length<200,'the toolbar stays compact while the guide is read');await new Promise(r=>setTimeout(r,150));assert.match(spoken.at(-1),/^Welcome to Geophonia/,'pending focus speech cannot interrupt the complete guide');
-  window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));const quiet=spoken.length;await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,quiet,'Escape does not restart the guide');
-  byId('close-expanded').click();input.focus();const typing=spoken.length;input.dispatchEvent(new window.KeyboardEvent('keydown',{key:'9',bubbles:true}));assert.equal(spoken.length,typing,'9 in a typing field is never intercepted');
-  byId('tutorial-next').click();assert.equal(byId('tutorial').hidden,true);
+  map.focus();const guideCount=spoken.length;map.dispatchEvent(new window.KeyboardEvent('keydown',{key:'9',bubbles:true,cancelable:true}));await until(()=>spoken.length>guideCount);assert.match(spoken.at(-1),/^Welcome to Geophonia/);assert.equal(spoken.at(-1),byId('full-guide-text').textContent);assert.ok(byId('voice-transcript').textContent.length<200);
+  window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));const quiet=spoken.length;await new Promise(r=>setTimeout(r,160));assert.equal(spoken.length,quiet,'Escape does not restart speech');assert.equal(dialog.open,true);
+  map.dispatchEvent(new window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}));await until(()=>byId('start-audio').textContent.includes('Pause'));
+  byId('tutorial-next').click();assert.equal(byId('tutorial').hidden,true);assert.equal(dialog.open,true);assert.equal(window.document.activeElement,map);assert.ok(byId('start-audio').textContent.includes('Pause'),'finishing preserves exploration audio');
+  byId('close-expanded').click();assert.equal(dialog.open,false);
+  // Browser denial retains the viewport-filling map and tutorial focus.
+  denyFullscreen=true;window.document.querySelector('[data-start-tutorial]').click();await new Promise(r=>setTimeout(r,0));assert.equal(fullscreenRequests,2);assert.equal(nativeFullscreen,null);assert.equal(dialog.open,true);assert.equal(window.document.activeElement,map);assert.match(byId('expanded-status').textContent,/blocked fullscreen/);
+  const cancel=new window.Event('cancel',{cancelable:true});dialog.dispatchEvent(cancel);assert.equal(cancel.defaultPrevented,true);assert.equal(dialog.open,true);assert.equal(byId('tutorial').hidden,false);
+  byId('tutorial-exit').click();byId('close-expanded').click();input.focus();const typing=spoken.length;input.dispatchEvent(new window.KeyboardEvent('keydown',{key:'9',bubbles:true}));assert.equal(spoken.length,typing,'typing 9 remains protected');
   byId('tab-help').click();byId('panel-help').querySelector('[data-read-guide]').click();await until(()=>spoken.at(-1)===byId('full-guide-text').textContent);assert.deepEqual(errors,[]);
  }finally{window.dispatchEvent(new window.Event('pagehide'));window.close();}
 });
