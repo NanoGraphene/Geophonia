@@ -2,7 +2,7 @@ name: Deploy Geophonia
 
 on:
   push:
-    branches: [GUI-Optimization]
+    branches: [main]
 
 permissions:
   contents: read
