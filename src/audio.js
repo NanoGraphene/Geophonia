@@ -21,7 +21,7 @@ export class AudioEngine {
     this.master.connect(this.narrationGain); this.narrationGain.connect(this.context.destination);
     this.level = this.context.createGain(); this.level.gain.value = 0; this.level.connect(this.master);
     this.dataVoice = createSynthVoice(this.context, this.level, 160);
-    this.dataVoice.oscillator.start();
+    this.dataVoice.start();
     this.oscillator = this.dataVoice.oscillator;
     this.context.onstatechange = () => {
       if (this.enabled && this.context.state !== 'running') { this.stop(); this.onInterrupted(); }

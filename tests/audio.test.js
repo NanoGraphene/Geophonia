@@ -9,7 +9,7 @@ class Param {
  linearRampToValueAtTime(v,t){this.events.push(['ramp',v,t]);}
 }
 class Node {
- constructor(){this.gain=new Param();this.frequency=new Param();this.positionX=new Param();this.positionY=new Param();this.positionZ=new Param();this.stopped=false;this.Q=new Param();}
+ constructor(){this.gain=new Param();this.frequency=new Param();this.detune=new Param();this.positionX=new Param();this.positionY=new Param();this.positionZ=new Param();this.stopped=false;this.Q=new Param();}
  setPeriodicWave(wave){this.wave=wave;}
  connect(){} disconnect(){} start(){} stop(){this.stopped=true;}
 }
@@ -30,6 +30,7 @@ test('audio is user-started, smooths updates and synchronously closes master on 
  const context=new Context();const engine=new AudioEngine(()=>context);
  engine.update(valid,prefs,true);assert.equal(engine.context,null);
  await engine.start();engine.update(valid,prefs,true);
+ assert.equal(context.oscillators.length,4);
  assert.ok(engine.level.gain.events.some(e=>e[0]==='smooth'&&e[1]===.03));
  assert.ok(engine.oscillator.frequency.events.some(e=>e[0]==='smooth'));
  engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
@@ -83,7 +84,7 @@ test('missing data has no background guide on either surface',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
  engine.update(missing,prefs,true,'land');assert.equal(engine.level.gain.value,0);
  engine.update(missing,prefs,true,'water');assert.equal(engine.level.gain.value,0);
- assert.equal(context.oscillators.length,1);assert.equal(engine.pendingTones.size,0);engine.stop();
+ assert.equal(context.oscillators.length,4);assert.equal(engine.pendingTones.size,0);engine.stop();
 });
 test('boundary and crossing cues replace stale sounds with bounded latest crossings',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
