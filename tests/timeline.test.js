@@ -62,3 +62,8 @@ test('same fixed location gets real new pixel samples and dates in each selected
     assert.equal(samples.length,3);assert.ok(new Set(samples).size>1,'time changes must resample actual new frame pixels');
   }
 });
+
+test('spoken digits work when Shift is needed to type the numeral, while editing remains protected',()=>{
+  assert.equal(keyboardCommand({key:'1',shiftKey:true}),'place');
+  assert.equal(keyboardCommand({key:'2',shiftKey:true},{editing:true}),null);
+});

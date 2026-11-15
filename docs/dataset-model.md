@@ -45,7 +45,7 @@ The Audio mapping panel exposes value range, curve and amplitude channel. Clippi
 
 ## Local CSV import
 
-Files stay in memory in the current browser tab. No CSV content is sent to a server. Speech follows the selected system/browser voice's own network behavior.
+Files stay in memory in the current browser tab. No CSV content is sent to a server. The default built-in voice fetches only static same-origin speech clips. Optional system/browser voices follow their provider’s own network behavior.
 
 Choose a regular geographic grid CSV (up to 16 MB / two million total cells), confirm inferred latitude, longitude, value and optional time columns, and supply units/no-data marker if needed. Quoted fields/newlines, sparse missing cells and valid zeros are supported. At least two regularly spaced cell centers per axis are required. Duplicate cells, invalid numbers, irregular grids and excessive size reject with actionable text. Reproject/regrid other coordinate systems or scattered observations before importing; GeoTIFF, NetCDF, arbitrary screenshots and 3D views are not parsed by this importer.
 

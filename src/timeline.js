@@ -15,7 +15,7 @@ export function frameCache(load,limit=4) {
 }
 export function keyboardCommand(event,{timeline=false,editing=false,otherRange=false,speech=true}={}) {
   if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||editing||otherRange)return null;
-  if(['1','2','3'].includes(event.key)&&!event.shiftKey&&!event.repeat)return speech?['place','value','date'][Number(event.key)-1]:null;
+  if(['1','2','3'].includes(event.key)&&!event.repeat)return speech?['place','value','date'][Number(event.key)-1]:null;
   if(event.shiftKey)return null;
   if(event.key==='ArrowLeft')return 'previous';
   if(event.key==='ArrowRight')return 'next';
