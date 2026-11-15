@@ -10,7 +10,7 @@ import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
-import { TextSpeech } from './text-speech.js';
+import { PhononSpeech } from './phonon-speech.js';
 import { loadPlaceNames } from './place-names.js';
 import { stepFrame, keyboardCommand } from './timeline.js';
 import { placeText, valueText, dateText, formattedValue } from './narration-text.js';
@@ -80,15 +80,15 @@ $('import-load').addEventListener('click',()=>{
 });
 
 function speechStatus(message){$('voice-status').textContent=message;$('expanded-voice-status').textContent=message;}
-const narrator=new TextSpeech({
+const narrator=new PhononSpeech({
   createWorker:()=>new Worker(new URL('./speech-worker.js',import.meta.url),{type:'module'}),
   player:$('speech-player'),
   onStatus:speechStatus,
   onActive:active=>audio.setNarrationActive(active),
   onDiagnostic:details=>{
-    const printable={...details};for(const key of ['loadMs','generationMs'])if(Number.isFinite(printable[key]))printable[key]=Math.round(printable[key]*10)/10;
+    const printable={...details};for(const key of ['loadMs','generationMs','firstPCMms','estimatedPlaybackStartMs'])if(Number.isFinite(printable[key]))printable[key]=Math.round(printable[key]*10)/10;
     $('speech-diagnostics').textContent=JSON.stringify({...printable,playerReadyState:$('speech-player').readyState,playerNetworkState:$('speech-player').networkState,wavSupport:$('speech-player').canPlayType('audio/wav')},null,2);
-    $('speech-engine-state').textContent=details.state==='ready'?'eSpeak NG · ready':details.state==='engine error'?'eSpeak NG · failed':'eSpeak NG';
+    $('speech-engine-state').textContent=details.state==='engine error'?'Phonon · failed':details.engineReady?'Phonon · ready':'Phonon · loading';
   }
 });
 function stopNarration(){narrator.stop();}
@@ -111,10 +111,10 @@ $('voice-enabled').addEventListener('change',event=>{
   for(const id of ['voice-test','map-voice-test','expanded-voice-test'])$(id).disabled=!event.target.checked;
   speechStatus(event.target.checked?'Speech enabled · 1 place · 2 value · 3 date':'Spoken shortcuts are off.');
 });
-$('voice-choice').addEventListener('change',event=>{stopNarration();narrator.voice=event.target.value;});
 $('voice-speed').addEventListener('change',event=>{stopNarration();narrator.rate=Number(event.target.value);});
 $('voice-volume').addEventListener('input',event=>{narrator.setVolume(Number(event.target.value)/100);$('voice-volume-value').textContent=event.target.value+'%';});
-narrator.prepare(new URL('./tts-data/',document.baseURI).href).catch(()=>{});
+narrator.prepare().catch(()=>{});
+window.addEventListener('pagehide',event=>{if(!event.persisted)narrator.dispose();});
 async function initializePlaces() {
   if ($('retry-places').disabled) return;
   placeStatus='loading';$('retry-places').disabled=true;$('retry-places').hidden=true;

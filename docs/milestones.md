@@ -106,3 +106,7 @@ Default structured speech uses a local static natural-voice clip bank instead of
 ##0.6.2 — Input-agnostic runtime TTS
 
 Replaces the rejected recording bank with arbitrary-text eSpeak NG synthesis in a worker. English startup assets are roughly1MB, with an on-demand static JavaScript fallback. Each request creates fresh PCM/WAV for a persistent native audio player; exact media/engine errors are visible, and blocked autoplay retains a direct Play action. Added editable freeform speech input, independent map/speech interruption handling and DOM/event regressions. All recordings, clip/token plans and recording compiler are removed.109 tests plus production-worker WASM/fallback synthesis verification pass; actual Firefox listening remains unverified.
+
+##0.7.0 — Phonon streaming on main
+
+Replaces the old TTS engine completely with Phonon31M CPU/WASM SIMD. The app automatically loads and caches model assets at startup without prerendering speech. Reading keys and freeform input stream PCM before the complete utterance exists. Rapid replacement cancels old frames/generation and keeps the model warm. Existing dataset, timeline, map, border-cue and accessibility behavior is preserved. Native WAV replay remains a fallback; no automatic duplicate replay. Source history is merged into main with the current stable-based app tree. Real built-worker streaming/cancellation checks pass; actual Firefox speaker output remains unverified here.

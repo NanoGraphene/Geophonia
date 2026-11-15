@@ -17,5 +17,5 @@ for(const definition of Object.values(DATASETS)){
 }
 assert.ok(html.includes('aria-live="polite"'));
 assert.ok(html.includes('id="silence"'));
-for(const path of ['public/geography/place-names.json','public/geography/place-names-manifest.json','public/tts-data/core.bin.gz','public/tts-data/en_dict.gz','public/tts-data/LICENSE']) await access(path);
+for(const path of ['public/geography/place-names.json','public/geography/place-names-manifest.json','public/phonon-licenses/LICENSE-MIT','public/phonon-licenses/LICENSE-APACHE','public/phonon-licenses/THIRD_PARTY_LICENSES.md']) await access(path);
 console.log('Syntax, UI references, accessible label targets, and local source assets checked.');

@@ -8,7 +8,7 @@ excluded={'node_modules','.git','.openai','dist','.local','downloads','work','__
 with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(root.rglob('*')):
         relative=path.relative_to(root)
-        if relative.parts[:2] in [('public','runtime'),('public','tts-data')]:continue
+        if relative.parts[:2] in [('public','runtime'),('public','phonon-licenses')]:continue
         if not path.is_file() or excluded.intersection(relative.parts):continue
         archive.write(path,Path('earth-jukebox')/relative)
 with zipfile.ZipFile(output) as archive:

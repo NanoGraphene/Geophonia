@@ -1,74 +1,90 @@
 {
-  "scope": "Built production worker in an isolated browser-like JavaScript realm, with real synthesis and bundled WASM/JavaScript fallback. No graphical browser or speaker verification.",
-  "wasm": {
-    "mode": "WebAssembly",
-    "loadMs": 37.56384500000001,
-    "cases": [
-      {
-        "text": "An unfamiliar sentence: the copper observatory recorded 472.6 units at dawn.",
-        "ms": 39.499634,
-        "duration": 5.982947845804989,
-        "samples": 131924,
-        "peak": 0.834808349609375,
-        "wavBytes": 263892
-      },
-      {
-        "text": "My custom grid is named Zephyr Meadow; its value is minus 18.75 meters.",
-        "ms": 5.9342829999999935,
-        "duration": 5.01968253968254,
-        "samples": 110684,
-        "peak": 0.78350830078125,
-        "wavBytes": 221412
-      },
-      {
-        "text": "The date is 15 November 2026, and this wording was not recorded in advance.",
-        "ms": 6.291909000000004,
-        "duration": 5.504081632653061,
-        "samples": 121365,
-        "peak": 0.775177001953125,
-        "wavBytes": 242774
+  "scope": "Actual built Geophonia speech worker with real Phonon model and CPU/WASM in an isolated browser-like Node VM realm. No graphical browser, audio-device or speaker verification. First PCM is not measured audible latency.",
+  "worker": "speech-worker-C7BNrCQu.js",
+  "results": [
+    {
+      "engine": "phonon",
+      "preparation": {
+        "loadMs": 1636.2302399999999,
+        "generatedChunks": 0
       }
-    ],
-    "requests": [
-      "/assets/espeak-ng-Dm2Ws3KF.wasm",
-      "/tts-data/manifest.json",
-      "/tts-data/core.bin.gz",
-      "/tts-data/en_dict.gz"
-    ]
-  },
-  "javascriptFallback": {
-    "mode": "JavaScript fallback",
-    "loadMs": 55.150735,
-    "cases": [
-      {
-        "text": "An unfamiliar sentence: the copper observatory recorded 472.6 units at dawn.",
-        "ms": 235.796948,
-        "duration": 5.982947845804989,
-        "samples": 131924,
-        "peak": 0.834808349609375,
-        "wavBytes": 263892
+    },
+    {
+      "engine": "phonon",
+      "text": "The temperature over the Adriatic Sea is minus 18.75 degrees Celsius, on 15 November 2026.",
+      "peak": 17733,
+      "sampleRate": 24000,
+      "timing": {
+        "generationMs": 3668.4737219999997,
+        "firstChunkMs": 144.7230669999999,
+        "duration": 7.84,
+        "chunks": 98
       },
-      {
-        "text": "My custom grid is named Zephyr Meadow; its value is minus 18.75 meters.",
-        "ms": 45.193894,
-        "duration": 5.01968253968254,
-        "samples": 110684,
-        "peak": 0.78350830078125,
-        "wavBytes": 221412
-      },
-      {
-        "text": "The date is 15 November 2026, and this wording was not recorded in advance.",
-        "ms": 78.81923299999994,
-        "duration": 5.504081632653061,
-        "samples": 121365,
-        "peak": 0.775177001953125,
-        "wavBytes": 242774
+      "wavBytes": 376364,
+      "streamVerification": {
+        "chunks": 98,
+        "first": {
+          "index": 0,
+          "length": 1920,
+          "firstChunkMs": 144.7230669999999,
+          "sampleRate": 24000,
+          "peak": 0.009877046570181847
+        },
+        "last": {
+          "index": 97,
+          "length": 1920,
+          "firstChunkMs": 144.7230669999999,
+          "sampleRate": 24000,
+          "peak": 0.001018890761770308
+        }
       }
-    ],
-    "requests": [
-      "/tts-data/manifest.json",
-      "/tts-data/core.bin.gz",
-      "/tts-data/en_dict.gz"
-    ]
-  }
+    },
+    {
+      "engine": "phonon",
+      "text": "The cursor points to the Mediterranean Sea.",
+      "peak": 17123,
+      "sampleRate": 24000,
+      "timing": {
+        "generationMs": 1302.128181,
+        "firstChunkMs": 67.72565699999996,
+        "duration": 2.8,
+        "chunks": 35
+      },
+      "wavBytes": 134444,
+      "streamVerification": {
+        "chunks": 35,
+        "first": {
+          "index": 0,
+          "length": 1920,
+          "firstChunkMs": 67.72565699999996,
+          "sampleRate": 24000,
+          "peak": 0.010049981065094471
+        },
+        "last": {
+          "index": 34,
+          "length": 1920,
+          "firstChunkMs": 67.72565699999996,
+          "sampleRate": 24000,
+          "peak": 0.00010799465235322714
+        }
+      }
+    },
+    {
+      "engine": "phonon",
+      "cancellation": {
+        "oldFrames": 1,
+        "oldCompletion": false,
+        "newChunks": 26,
+        "firstChunkMs": 52.77143200000046,
+        "modelReloaded": false
+      }
+    }
+  ],
+  "requests": [
+    "https://speech-runtime.test/assets/phonon_tts_simd_bg-DJhorbHW.wasm",
+    "https://huggingface.co/gradium/phonon-31m-en/resolve/92741c5b07d085ff840e26fea8ce43110b87852f/model.q8.gguf",
+    "https://huggingface.co/gradium/phonon-31m-en/resolve/92741c5b07d085ff840e26fea8ce43110b87852f/tokenizer.json",
+    "https://huggingface.co/gradium/phonon-31m-en/resolve/92741c5b07d085ff840e26fea8ce43110b87852f/config.json",
+    "https://huggingface.co/gradium/phonon-31m-en/resolve/92741c5b07d085ff840e26fea8ce43110b87852f/default-voice.safetensors"
+  ]
 }

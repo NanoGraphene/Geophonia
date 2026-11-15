@@ -1,6 +1,6 @@
 {
   "name": "earth-information-jukebox",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -20,7 +20,7 @@
     "vite": "^7.2.2"
   },
   "dependencies": {
-    "@spelling-creator/spellophone": "0.2.1"
+    "phonon-tts": "0.7.1"
   },
   "engines": {
     "node": ">=24"
