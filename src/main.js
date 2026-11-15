@@ -217,7 +217,7 @@ function render(state) {
   else if (legendPlaying) $('audio-status').textContent = 'Playing an audio legend example.';
   else if (!active) $('audio-status').textContent = 'Audio paused outside the map. Move or focus the map to continue.';
   else $('audio-status').textContent = sample?.value != null ? 'Audio on · exploring the selected location' : 'Audio on · no visual sample; data tone is silent';
-  audio.update(sample, state.audio, active && !legendPlaying, state.surface);
+  audio.update(sample, state.audio, active && !legendPlaying, state.surface, point);
 }
 store.subscribe(render);
 function resample(location = store.get().location, extra = {}) {

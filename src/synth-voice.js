@@ -8,10 +8,17 @@ export function voiceFilter(fundamental) {
 }
 export function createSynthVoice(context, target, frequency, { profile = 'pad' } = {}) {
   const oscillator = context.createOscillator(), filter = context.createBiquadFilter();
+  const panner = typeof context.createPanner === 'function' ? context.createPanner() : null;
   const partials = profile === 'knock' ? [0,1,.7,.45,.3,.2,.1] : profile === 'droplet' ? [0,1,.12,.03] : profile === 'mallet' ? MALLET_PARTIALS : PAD_PARTIALS;
   oscillator.setPeriodicWave(context.createPeriodicWave(new Float32Array(partials.length), Float32Array.from(partials)));
   oscillator.frequency.value = frequency;
   filter.type = 'lowpass'; filter.frequency.value = voiceFilter(frequency).cutoff; filter.Q.value = .55;
-  oscillator.connect(filter); filter.connect(target);
-  return { oscillator, filter, disconnect() { oscillator.disconnect(); filter.disconnect(); } };
+  oscillator.connect(filter);
+  if (panner) {
+    panner.panningModel = 'HRTF'; panner.distanceModel = 'inverse';
+    panner.refDistance = 1; panner.rolloffFactor = .3; panner.maxDistance = 10000;
+    panner.positionX.value = 0; panner.positionY.value = 0; panner.positionZ.value = -1.5;
+    filter.connect(panner); panner.connect(target);
+  } else filter.connect(target);
+  return { oscillator, filter, panner, disconnect() { oscillator.disconnect(); filter.disconnect(); if (panner) panner.disconnect(); } };
 }

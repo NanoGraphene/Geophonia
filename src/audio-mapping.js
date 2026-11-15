@@ -1,4 +1,10 @@
 import { clamp } from './coordinates.js';
+export function mapSpatialPosition(position) {
+  if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.y)) return null;
+  const horizontal = clamp(position.x, 0, 1) * 2 - 1;
+  const vertical = 1 - clamp(position.y, 0, 1) * 2;
+  return { x: horizontal * 2.5, y: vertical * 1.5, z: -1.5 + vertical * .5 };
+}
 export function validatePitchRange(min, max) {
   return Number.isFinite(min) && Number.isFinite(max) && min >= 80 && max <= 2000 && min < max;
 }

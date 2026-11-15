@@ -9,14 +9,15 @@ class Param {
  linearRampToValueAtTime(v,t){this.events.push(['ramp',v,t]);}
 }
 class Node {
- constructor(){this.gain=new Param();this.frequency=new Param();this.stopped=false;this.Q=new Param();}
+ constructor(){this.gain=new Param();this.frequency=new Param();this.positionX=new Param();this.positionY=new Param();this.positionZ=new Param();this.stopped=false;this.Q=new Param();}
  setPeriodicWave(wave){this.wave=wave;}
  connect(){} disconnect(){} start(){} stop(){this.stopped=true;}
 }
 class Context {
- constructor(){this.currentTime=1;this.state='suspended';this.destination={};this.oscillators=[];}
+ constructor(){this.currentTime=1;this.state='suspended';this.destination={};this.listener={setOrientation(){}};this.oscillators=[];}
  createGain(){return new Node();}
  createBiquadFilter(){return new Node();}
+ createPanner(){const node=new Node();node.panningModel='HRTF';return node;}
  createPeriodicWave(real,imag){return {real,imag};}
  createOscillator(){const n=new Node();this.oscillators.push(n);return n;}
  async resume(){this.state='running';}
@@ -32,6 +33,16 @@ test('audio is user-started, smooths updates and synchronously closes master on 
  assert.ok(engine.level.gain.events.some(e=>e[0]==='smooth'&&e[1]===.03));
  assert.ok(engine.oscillator.frequency.events.some(e=>e[0]==='smooth'));
  engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
+});
+test('cursor position moves the current voice through HRTF space',async()=>{
+ const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
+ engine.update(valid,prefs,true,'unknown',{x:0,y:0});
+ const panner=engine.dataVoice.panner;
+ assert.equal(panner.panningModel,'HRTF');
+ assert.ok(panner.positionX.events.some(event=>event[0]==='smooth'&&event[1]===-2.5));
+ assert.ok(panner.positionY.events.some(event=>event[0]==='smooth'&&event[1]===1.5));
+ assert.ok(panner.positionZ.events.some(event=>event[0]==='smooth'&&event[1]===-1));
+ engine.stop();
 });
 test('missing samples do not trigger automatic notifications',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();

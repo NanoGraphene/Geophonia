@@ -1,4 +1,4 @@
-import { mapAudio } from './audio-mapping.js';
+import { mapAudio, mapSpatialPosition } from './audio-mapping.js';
 import { boundaryPattern, patternDuration } from './navigation-cues.js';
 import { createSynthVoice, voiceFilter } from './synth-voice.js';
 export class AudioEngine {
@@ -14,6 +14,7 @@ export class AudioEngine {
   setup() {
     if (this.context) return;
     this.context = this.factory();
+    this.context.listener?.setOrientation?.(0, 0, -1, 0, 1, 0);
     this.master = this.context.createGain(); this.master.gain.value = 0;
     this.narrationGain = this.context.createGain();
     this.narrationGain.gain.value = this.narrating ? .2 : 1;
@@ -27,6 +28,7 @@ export class AudioEngine {
     };
   }
   smooth(parameter, value, timeConstant = .055) {
+    if (!parameter || !Number.isFinite(value)) return;
     const time = this.context.currentTime;
     if (parameter.cancelAndHoldAtTime) parameter.cancelAndHoldAtTime(time);
     else parameter.cancelScheduledValues(time);
@@ -70,11 +72,17 @@ export class AudioEngine {
     this.smooth(this.level.gain, 0, .04);
     this.lastValidity = null;
   }
-  update(sample, preferences, active, surface = 'unknown') {
+  update(sample, preferences, active, surface = 'unknown', position = null) {
     if (this.context && this.lastVolume !== preferences.volume) {
       this.cancelTones(); this.lastVolume = preferences.volume;
     }
     if (!this.enabled || !active || !sample) { this.fade(); return; }
+    const spatial = mapSpatialPosition(position);
+    if (spatial && this.dataVoice.panner) {
+      this.smooth(this.dataVoice.panner.positionX, spatial.x, .02);
+      this.smooth(this.dataVoice.panner.positionY, spatial.y, .02);
+      this.smooth(this.dataVoice.panner.positionZ, spatial.z, .02);
+    }
     const { frequency, gain } = mapAudio(sample, preferences);
     // Neutral voicing: location never changes the data tone's timbre.
     if(frequency!==null)this.smooth(this.dataVoice.filter.frequency,voiceFilter(frequency).cutoff);
