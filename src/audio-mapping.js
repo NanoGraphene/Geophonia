@@ -15,8 +15,9 @@ export function mapBoundaryPosition(zone) {
 export function validatePitchRange(min, max) {
   return Number.isFinite(min) && Number.isFinite(max) && min >= 80 && max <= 2000 && min < max;
 }
-export const FILTER_MIN_HZ = 300;
+export const FILTER_MIN_HZ = 200;
 export const FILTER_MAX_HZ = 14000;
+export const COVERAGE_GAIN_FLOOR = .35;
 export function validateToneFrequency(value) {
   return Number.isFinite(value) && value >= 40 && value <= 2000;
 }
@@ -34,7 +35,10 @@ export function mapAudio(sample, preferences) {
   }
   const frequency = toneHz;
   const cutoff = Math.exp(Math.log(FILTER_MIN_HZ) + (Math.log(FILTER_MAX_HZ) - Math.log(FILTER_MIN_HZ)) * normalized);
-  const amplitude=mapping?.amplitude==='value'?normalized:mapping?.amplitude==='intensity'?sample.intensity:sample.density;
-  const gain = .12 * clamp(preferences.volume, 0, 1) * clamp(amplitude??0, 0, 1);
+  const rawAmplitude=mapping?.amplitude==='value'?normalized:mapping?.amplitude==='intensity'?sample.intensity:sample.density;
+  const amplitude = mapping?.amplitude === 'coverage' || !mapping?.amplitude
+    ? COVERAGE_GAIN_FLOOR + (1 - COVERAGE_GAIN_FLOOR) * Math.sqrt(clamp(rawAmplitude ?? 0, 0, 1))
+    : clamp(rawAmplitude ?? 0, 0, 1);
+  const gain = .12 * clamp(preferences.volume, 0, 1) * amplitude;
   return { frequency, cutoff, gain };
 }
