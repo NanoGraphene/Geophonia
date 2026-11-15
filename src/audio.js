@@ -83,9 +83,9 @@ export class AudioEngine {
       this.smooth(this.dataVoice.panner.positionY, spatial.y, .02);
       this.smooth(this.dataVoice.panner.positionZ, spatial.z, .02);
     }
-    const { frequency, gain } = mapAudio(sample, preferences);
+    const { frequency, cutoff, gain } = mapAudio(sample, preferences);
     // Neutral voicing: location never changes the data tone's timbre.
-    if(frequency!==null)this.smooth(this.dataVoice.filter.frequency,voiceFilter(frequency).cutoff);
+    if(frequency!==null)this.smooth(this.dataVoice.filter.frequency, cutoff);
     if (frequency !== null) {
       if (this.lastValidity === 'no-visual-sample') this.cancelTones('missing');
       this.smooth(this.dataVoice.oscillator.frequency, frequency);

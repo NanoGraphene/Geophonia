@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { preparePalette, matchColor, sampleNeighborhood } from '../src/sampling.js';
-import { mapAudio, validatePitchRange } from '../src/audio-mapping.js';
+import { FILTER_MAX_HZ, FILTER_MIN_HZ, mapAudio, validatePitchRange } from '../src/audio-mapping.js';
 import { readFile } from 'node:fs/promises';
 const rgb=JSON.parse(await readFile(new URL('../public/data/palette.json',import.meta.url))).rgb;
 const palette=preparePalette(rgb);
-const preferences={minHz:160,maxHz:800,volume:.25};
+const preferences={toneHz:220,minHz:160,maxHz:800,volume:.25};
 const image=(colors,width=colors.length)=>({width,height:colors.length/width,data:Uint8ClampedArray.from(colors.flat())});
 test('actual source palette is ordered blue to red, including valid zero',()=>{
  const positions=[0,60,130,200,275].map(i=>matchColor(...rgb[i],255,palette));
@@ -24,7 +24,7 @@ test('neighborhood separates trace proportion and palette mean, preserving zero'
  const result=sampleNeighborhood(im,{lon:0,lat:0},1,palette);
  assert.equal(result.value,0);assert.equal(result.validity,'valid');
  assert.equal(result.density,1/3);assert.equal(result.totalPixels,3);
- const mapped=mapAudio(result,preferences);assert.equal(mapped.frequency,160);assert.ok(mapped.gain>0);
+ const mapped=mapAudio(result,preferences);assert.equal(mapped.frequency,220);assert.ok(mapped.gain>0);assert.ok(mapped.cutoff>=FILTER_MIN_HZ-1e-9);
 });
 test('missing sample has null value and zero gain; no NaN from empty neighborhood',()=>{
  const result=sampleNeighborhood(image([[0,0,0,255]]),{lon:0,lat:0},0,palette);
@@ -37,12 +37,12 @@ test('sampling wraps at the antimeridian and omits pixels beyond source poles',(
  assert.equal(result.totalPixels,6);assert.equal(result.matchedPixels,2);assert.ok(result.value>.45&&result.value<.55);
  assert.throws(()=>sampleNeighborhood(im,{lon:0,lat:0},-1,palette));
 });
-test('pitch is monotonic, exponential and clipped; volume and density control bounded gain',()=>{
+test('pitch stays fixed while value maps logarithmically to filter cutoff and gain stays bounded',()=>{
  const s=value=>({value,density:1,validity:'valid'});
- assert.equal(mapAudio(s(0),preferences).frequency,160);
- assert.equal(mapAudio(s(1),preferences).frequency,800);
- assert.ok(Math.abs(mapAudio(s(.5),preferences).frequency-Math.sqrt(160*800))<1e-9);
- assert.equal(mapAudio(s(-1),preferences).frequency,160);assert.equal(mapAudio(s(2),preferences).frequency,800);
+ assert.equal(mapAudio(s(0),preferences).frequency,220);
+ assert.equal(mapAudio(s(1),preferences).frequency,220);
+ assert.ok(Math.abs(mapAudio(s(.5),preferences).cutoff-Math.sqrt(FILTER_MIN_HZ*FILTER_MAX_HZ))<1e-9);
+ assert.ok(Math.abs(mapAudio(s(-1),preferences).cutoff-FILTER_MIN_HZ)<1e-9);assert.ok(Math.abs(mapAudio(s(2),preferences).cutoff-FILTER_MAX_HZ)<1e-9);
  assert.equal(mapAudio(s(1),preferences).gain,.03);
  assert.equal(mapAudio({...s(1),density:.5},preferences).gain,.015);
  assert.equal(mapAudio(s(1),{...preferences,volume:0}).gain,0);

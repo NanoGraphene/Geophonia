@@ -8,8 +8,14 @@ export function mapSpatialPosition(position) {
 export function validatePitchRange(min, max) {
   return Number.isFinite(min) && Number.isFinite(max) && min >= 80 && max <= 2000 && min < max;
 }
+export const FILTER_MIN_HZ = 300;
+export const FILTER_MAX_HZ = 14000;
+export function validateToneFrequency(value) {
+  return Number.isFinite(value) && value >= 40 && value <= 2000;
+}
 export function mapAudio(sample, preferences) {
-  if (!sample || sample.validity !== 'valid' || sample.value === null || !validatePitchRange(preferences.minHz, preferences.maxHz)) return { frequency: null, gain: 0 };
+  const toneHz = Number(preferences.toneHz ?? preferences.minHz);
+  if (!sample || sample.validity !== 'valid' || sample.value === null || !validateToneFrequency(toneHz)) return { frequency: null, gain: 0 };
   const mapping=preferences.mapping;
   let normalized=clamp(sample.value,0,1);
   if(mapping) {
@@ -19,9 +25,9 @@ export function mapAudio(sample, preferences) {
     normalized=curve==='log'?Math.log(clipped/min)/Math.log(max/min):(clipped-min)/(max-min);
     if(curve==='sqrt')normalized=Math.sqrt(normalized);
   }
-  // Exponential frequency gives uniform perceptual steps along the palette.
-  const frequency = preferences.minHz * (preferences.maxHz / preferences.minHz) ** normalized;
+  const frequency = toneHz;
+  const cutoff = Math.exp(Math.log(FILTER_MIN_HZ) + (Math.log(FILTER_MAX_HZ) - Math.log(FILTER_MIN_HZ)) * normalized);
   const amplitude=mapping?.amplitude==='value'?normalized:mapping?.amplitude==='intensity'?sample.intensity:sample.density;
   const gain = .12 * clamp(preferences.volume, 0, 1) * clamp(amplitude??0, 0, 1);
-  return { frequency, gain };
+  return { frequency, cutoff, gain };
 }
