@@ -22,7 +22,9 @@ Density is qualifying trace pixels divided by all available pixels in the square
 
 ## Audio — neutral data voice and short crossing notifications (current)
 
-Mean palette position q sets pitch = lowHz×(highHz/lowHz)^q; coverage sets gain = 0.12×volume×density, with existing 55 ms smoothing. The sustained harmonic voice has the same voicing everywhere (partial weights [1,.32,.18,.10,.05], neutral low-pass cutoff fundamental×3 clamped to 100–10000 Hz, Q=.55). Geography never changes its filter or waveform. The constant surface modifier, contrast setting, and 140 Hz background guide have been removed. Missing data has zero continuous data gain and no automatic gap beep.
+Mean palette position q keeps the continuous ambient root at 110 Hz and maps q linearly across the preset's low-pass cutoff and resonance ranges. Coverage sets gain = preset gain×volume×density, with existing 55 ms smoothing. The default sustained harmonic voice is defined in `src/sound-presets.js`; `src/audio-mapping.js` turns samples into frequency, gain, cutoff and resonance, and `AudioEngine.update()` applies those parameters. Geography never changes the default voice. Pitch-range preferences remain available for the audible legend and navigation cues, not the continuous data mapping. Missing data has zero continuous data gain and no automatic gap beep.
+
+Sound presets are local, editable JavaScript data. `AudioEngine.addLayer()`, `removeLayer()` and `updateLayers()` support independent voices for layered sources. Four related aerosol presets are included (`aerosolDust`, `aerosolSmoke`, `aerosolSeaSalt` and `aerosolSulphate`); they become audible when a future aerosol dataset supplies samples with those preset IDs. The current committed datasets still provide one sample per location, so no aerosol layer is selected by the interface yet.
 
 Land/water classification independently triggers short mono earcons on spatial shoreline crossings:
 - Entering land: dry, low knock; partial weights [1,.7,.45,.3,.2,.1]; pitch slides from 330 to 220 Hz over the first 75% of a 45 ms envelope.

@@ -9,7 +9,7 @@ class Param {
  linearRampToValueAtTime(v,t){this.events.push(['ramp',v,t]);}
 }
 class Node {
- constructor(){this.gain=new Param();this.frequency=new Param();this.stopped=false;this.Q=new Param();}
+ constructor(){this.gain=new Param();this.frequency=new Param();this.detune=new Param();this.stopped=false;this.Q=new Param();}
  setPeriodicWave(wave){this.wave=wave;}
  connect(){} disconnect(){} start(){} stop(){this.stopped=true;}
 }
@@ -29,6 +29,7 @@ test('audio is user-started, smooths updates and synchronously closes master on 
  const context=new Context();const engine=new AudioEngine(()=>context);
  engine.update(valid,prefs,true);assert.equal(engine.context,null);
  await engine.start();engine.update(valid,prefs,true);
+ assert.equal(context.oscillators.length,3);
  assert.ok(engine.level.gain.events.some(e=>e[0]==='smooth'&&e[1]===.03));
  assert.ok(engine.oscillator.frequency.events.some(e=>e[0]==='smooth'));
  engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
@@ -72,7 +73,7 @@ test('missing data has no background guide on either surface',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
  engine.update(missing,prefs,true,'land');assert.equal(engine.level.gain.value,0);
  engine.update(missing,prefs,true,'water');assert.equal(engine.level.gain.value,0);
- assert.equal(context.oscillators.length,1);assert.equal(engine.pendingTones.size,0);engine.stop();
+ assert.equal(context.oscillators.length,3);assert.equal(engine.pendingTones.size,0);engine.stop();
 });
 test('boundary and crossing cues replace stale sounds with bounded latest crossings',async()=>{
  const engine=new AudioEngine(()=>new Context());await engine.start();
@@ -132,4 +133,18 @@ test('speech ducking lowers the output bus, restores it, and cannot undo global 
  engine.setSpeechDucking(true);assert.equal(engine.duck.gain.value,.18);assert.equal(engine.level.gain.value,.03);
  engine.setSpeechDucking(false);assert.equal(engine.duck.gain.value,1);
  engine.stop();engine.setSpeechDucking(false);assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
+});
+test('layered voices keep independent presets and filter mappings',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();
+ engine.addLayer('dust','aerosolDust');engine.addLayer('smoke','aerosolSmoke');
+ engine.updateLayers([
+  {id:'dust',preset:'aerosolDust',sample:valid},
+  {id:'smoke',preset:'aerosolSmoke',sample:{...valid,value:0}}
+ ],prefs,true);
+ const dust=engine.layerVoices.get('dust');const smoke=engine.layerVoices.get('smoke');
+ assert.ok(dust.voice.filter.frequency.events.some(event=>event[0]==='smooth'));
+ assert.ok(smoke.voice.filter.Q.events.some(event=>event[0]==='smooth'));
+ assert.notEqual(dust.voice.oscillator.wave.imag[2],smoke.voice.oscillator.wave.imag[2]);
+ engine.updateLayers([{id:'dust',preset:'aerosolDust',sample:valid}],prefs,true);
+ assert.equal(engine.layerVoices.has('smoke'),false);engine.stop();
 });

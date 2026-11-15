@@ -22,7 +22,7 @@ Source: NASA SVS 3912, ECCO2 ocean visualization; frame 23000 at 2007-03-25 12:0
 
 Focus map with Tab; arrows move by selected degree step, Home resets. Pointer and coordinate form share the same location. The map is a localized ARIA application region; Tab leaves normally. Directional buttons offer an alternative. Web Mercator latitude range is ±85.0511°. East/west navigation wraps across the antimeridian.
 
-Start Audio begins sonification; Pause or Silence all audio stops it. Escape silences immediately. Volume defaults to 25%, pitch 160–800 Hz. Missing visual samples have zero data tone and no background guide. Shoreline crossings have short knock/droplet notifications. The audio legend demonstrates pitch, trace coverage, missing-sample reference, and both shoreline crossing notifications. Background tabs require explicit audio restart.
+Start Audio begins sonification; Pause or Silence all audio stops it. Escape silences immediately. Volume defaults to 25%. The continuous data voice is a low 110 Hz ambient root whose filter cutoff and resonance follow the image-derived palette position; density controls its gain. The 160–800 Hz range remains available for legends and navigation cues. Missing visual samples have zero data tone and no background guide. Shoreline crossings have short knock/droplet notifications. Background tabs require explicit audio restart.
 
 Feature definitions, thresholds, projection and lifecycle: `docs/mappings.md`. Verification limits and demo: `docs/accessibility-checks.md`. Milestones 2–4 are implemented; milestones 5 and 6 are implemented; manual accessibility/listening review remains pending.
 

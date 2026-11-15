@@ -1,6 +1,7 @@
 import { mapAudio } from './audio-mapping.js';
 import { boundaryPattern, patternDuration } from './navigation-cues.js';
 import { createSynthVoice, voiceFilter } from './synth-voice.js';
+import { SOUND_PRESETS, DEFAULT_SOUND_PRESET } from './sound-presets.js';
 export class AudioEngine {
   constructor(factory = () => {
     const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
@@ -18,8 +19,15 @@ export class AudioEngine {
     this.duck=this.context.createGain();this.duck.gain.value=this.ducked ? .18 : 1;
     this.master.connect(this.duck);this.duck.connect(this.context.destination);
     this.level = this.context.createGain(); this.level.gain.value = 0; this.level.connect(this.master);
-    this.dataVoice = createSynthVoice(this.context, this.level, 160);
-    this.dataVoice.oscillator.start();
+    this.dataVoice = createSynthVoice(this.context, this.level, 160, {
+      partials: SOUND_PRESETS[DEFAULT_SOUND_PRESET].partials,
+      voices: SOUND_PRESETS[DEFAULT_SOUND_PRESET].voices
+    });
+    const preset = SOUND_PRESETS[DEFAULT_SOUND_PRESET];
+    this.dataVoice.filter.frequency.value = preset.filter.cutoffMin;
+    this.dataVoice.filter.Q.value = preset.filter.resonanceMin;
+    this.layerVoices = new Map([[DEFAULT_SOUND_PRESET, { voice: this.dataVoice, gain: this.level, preset: DEFAULT_SOUND_PRESET }]]);
+    this.dataVoice.start();
     this.oscillator = this.dataVoice.oscillator;
     this.context.onstatechange = () => {
       if (this.enabled && this.context.state !== 'running') { this.stop(); this.onInterrupted(); }
@@ -68,14 +76,56 @@ export class AudioEngine {
     this.smooth(this.level.gain, 0, .04);
     this.lastValidity = null;
   }
+  addLayer(id, presetName) {
+    if (!this.context || this.layerVoices.has(id)) return false;
+    const preset = SOUND_PRESETS[presetName];
+    if (!preset) throw new Error(`Unknown sound preset: ${presetName}`);
+    const gain = this.context.createGain();
+    gain.gain.value = 0;
+    gain.connect(this.master);
+    const voice = createSynthVoice(this.context, gain, preset.rootHz, { partials: preset.partials, voices: preset.voices });
+    voice.filter.frequency.value = preset.filter.cutoffMin;
+    voice.filter.Q.value = preset.filter.resonanceMin;
+    voice.start();
+    this.layerVoices.set(id, { voice, gain, preset: presetName });
+    return true;
+  }
+  removeLayer(id) {
+    const entry = this.layerVoices?.get(id);
+    if (!entry || id === DEFAULT_SOUND_PRESET) return false;
+    try { entry.voice.oscillator.stop(); } catch { /* Already ended. */ }
+    entry.voice.disconnect(); entry.gain.disconnect(); this.layerVoices.delete(id);
+    return true;
+  }
+  updateLayers(layers, preferences, active) {
+    if (!this.layerVoices) return;
+    const incoming = new Set(layers.map(layer => layer.id));
+    for (const id of this.layerVoices.keys()) if (id !== DEFAULT_SOUND_PRESET && !incoming.has(id)) this.removeLayer(id);
+    for (const layer of layers) {
+      if (layer.id !== DEFAULT_SOUND_PRESET) this.addLayer(layer.id, layer.preset);
+      const entry = this.layerVoices.get(layer.id);
+      if (!entry) continue;
+      const mapped = mapAudio(layer.sample, preferences, entry.preset);
+      if (!active || mapped.frequency === null) {
+        this.smooth(entry.gain.gain, 0, .04);
+        continue;
+      }
+      this.smooth(entry.voice.filter.frequency, mapped.cutoff);
+      this.smooth(entry.voice.filter.Q, mapped.resonance);
+      this.smooth(entry.gain.gain, mapped.gain);
+    }
+  }
   update(sample, preferences, active, surface = 'unknown') {
     if (this.context && this.lastVolume !== preferences.volume) {
       this.cancelTones(); this.lastVolume = preferences.volume;
     }
     if (!this.enabled || !active || !sample) { this.fade(); return; }
-    const { frequency, gain } = mapAudio(sample, preferences);
+    const { frequency, gain, cutoff, resonance } = mapAudio(sample, preferences);
     // Neutral voicing: location never changes the data tone's timbre.
-    if(frequency!==null)this.smooth(this.dataVoice.filter.frequency,voiceFilter(frequency).cutoff);
+    if (frequency !== null) {
+      this.smooth(this.dataVoice.filter.frequency, cutoff);
+      this.smooth(this.dataVoice.filter.Q, resonance);
+    }
     if (frequency !== null) {
       if (this.lastValidity === 'no-visual-sample') this.cancelTones('missing');
       this.smooth(this.dataVoice.oscillator.frequency, frequency);

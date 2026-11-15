@@ -78,7 +78,7 @@ function render(state) {
   $('palette-marker').hidden = sample?.value == null;
   $('palette-marker').style.left = `${(sample?.value ?? 0) * 100}%`;
   $('density').textContent = sample ? `${Math.round(sample.density * 100)}% · ${sample.matchedPixels}/${sample.totalPixels} pixels` : '—';
-  $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz`;
+  $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz root · ${Math.round(mapped.cutoff)} Hz filter`;
   $('sample-note').textContent = sample?.value != null ? 'Mean source-palette position · image-derived' : source ? 'No interpretable visual sample' : 'Waiting for the NASA frame';
   $('surface').textContent = surfaceDescription(state);
   $('surface').dataset.surface = state.surface;
