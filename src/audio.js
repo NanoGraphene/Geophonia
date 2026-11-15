@@ -20,7 +20,7 @@ export class AudioEngine {
     this.narrationGain.gain.value = this.narrating ? .2 : 1;
     this.master.connect(this.narrationGain); this.narrationGain.connect(this.context.destination);
     this.level = this.context.createGain(); this.level.gain.value = 0; this.level.connect(this.master);
-    this.dataVoice = createSynthVoice(this.context, this.level, 160);
+    this.dataVoice = createSynthVoice(this.context, this.level, 1000,{profile:'harmonic'});
     this.dataVoice.start();
     this.oscillator = this.dataVoice.oscillator;
     this.context.onstatechange = () => {
@@ -49,7 +49,7 @@ export class AudioEngine {
       if (group && entry.group !== group) continue;
       entry.gain.gain.cancelScheduledValues(this.context.currentTime);
       entry.gain.gain.setValueAtTime(0, this.context.currentTime);
-      try { entry.oscillator.stop(); } catch { /* Already ended. */ }
+      entry.voice.stop();
       entry.voice.disconnect(); entry.gain.disconnect(); this.pendingTones.delete(entry);
     }
   }
@@ -83,12 +83,13 @@ export class AudioEngine {
       this.smooth(this.dataVoice.panner.positionY, spatial.y, .02);
       this.smooth(this.dataVoice.panner.positionZ, spatial.z, .02);
     }
-    const { frequency, cutoff, gain } = mapAudio(sample, preferences);
-    // Neutral voicing: location never changes the data tone's timbre.
-    if(frequency!==null)this.smooth(this.dataVoice.filter.frequency, cutoff);
+    const { frequency, gain } = mapAudio(sample, preferences);
+    // Timbre identifies the variable, never land/water or the sampled value.
+    this.dataVoice.setProfile(preferences.voiceProfile??'harmonic');
     if (frequency !== null) {
       if (this.lastValidity === 'no-visual-sample') this.cancelTones('missing');
-      this.smooth(this.dataVoice.oscillator.frequency, frequency);
+      this.dataVoice.setFrequency(frequency,(parameter,value)=>this.smooth(parameter,value,.025));
+      this.smooth(this.dataVoice.filter.frequency,Math.min(voiceFilter(frequency).cutoff,(this.context.sampleRate??48000)*.45));
     }
     this.smooth(this.level.gain, gain);
     this.lastValidity = sample.validity;
@@ -98,7 +99,7 @@ export class AudioEngine {
     const envelope = this.context.createGain();
     const voice = createSynthVoice(this.context, envelope, frequency, { profile });
     const { oscillator } = voice;
-    voice.filter.frequency.value = voiceFilter(frequency).cutoff;
+    voice.filter.frequency.value = Math.min(voiceFilter(frequency).cutoff,(this.context.sampleRate??48000)*.45);
     envelope.connect(this.master);
     duration = Math.max(duration, short ? .03 : .16);
     const start = this.context.currentTime + delay;
@@ -118,7 +119,7 @@ export class AudioEngine {
     oscillator.onended = () => { this.pendingTones.delete(entry); voice.disconnect(); envelope.disconnect(); };
     const pitchEnd = endHz ?? (profile === 'drum' ? frequency * .62 : null);
     if(pitchEnd!==null){oscillator.frequency.setValueAtTime(frequency,start);oscillator.frequency.linearRampToValueAtTime(pitchEnd,start+duration*.75);}
-    oscillator.start(start); oscillator.stop(start + duration + .01);
+    voice.start(start); voice.stop(start + duration + .01);
     return entry;
   }
   playPattern(pattern, volume, group, offset = 0, profile = 'mallet', position = null) {
@@ -146,8 +147,8 @@ export class AudioEngine {
   legend(kind, preferences) {
     const { volume, minHz, maxHz } = preferences, middle = Math.sqrt(minHz * maxHz);
     this.cancelTones(); this.fade();
-    if (kind === 'pitch') [minHz, middle, maxHz].forEach((f, i) => this.tone(f, i * .5, .35, .08 * volume));
-    if (kind === 'density') [.2, .5, 1].forEach((d, i) => this.tone(middle, i * .5, .35, .12 * volume * d));
+    if (kind === 'pitch') [minHz, middle, maxHz].forEach((f, i) => this.tone(f, i * .5, .35, .08 * volume,{profile:preferences.voiceProfile??'harmonic'}));
+    if (kind === 'density') [.2, .5, 1].forEach((d, i) => this.tone(middle, i * .5, .35, .12 * volume * d,{profile:preferences.voiceProfile??'harmonic'}));
     if (kind === 'missing') { this.missingCue(volume, 'legend'); return 750; }
     if(kind==='coast-land'||kind==='coast-water'){this.crossingCue(kind.slice(6),volume,'legend');return 150;}
     if (kind.startsWith('edge-')) {

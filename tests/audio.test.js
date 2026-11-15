@@ -11,7 +11,7 @@ class Param {
 class Node {
  constructor(){this.gain=new Param();this.frequency=new Param();this.detune=new Param();this.positionX=new Param();this.positionY=new Param();this.positionZ=new Param();this.stopped=false;this.Q=new Param();}
  setPeriodicWave(wave){this.wave=wave;}
- connect(){} disconnect(){} start(){} stop(){this.stopped=true;}
+ connect(){} disconnect(){} start(time){this.started=true;this.startAt=time;} stop(time){this.stopped=true;this.stopAt=time;}
 }
 class Context {
  constructor(){this.currentTime=1;this.state='suspended';this.destination={};this.listener={setOrientation(){}};this.oscillators=[];}
@@ -23,7 +23,7 @@ class Context {
  async resume(){this.state='running';}
  async suspend(){this.state='suspended';}
 }
-const prefs={minHz:160,maxHz:800,volume:.25};
+const prefs={minHz:1000,maxHz:8000,volume:.25};
 const valid={value:.5,density:1,validity:'valid'};
 const missing={value:null,density:0,validity:'no-visual-sample'};
 test('audio is user-started, smooths updates and synchronously closes master on stop',async()=>{
@@ -34,6 +34,32 @@ test('audio is user-started, smooths updates and synchronously closes master on 
  assert.ok(engine.level.gain.events.some(e=>e[0]==='smooth'&&e[1]===.03));
  assert.ok(engine.oscillator.frequency.events.some(e=>e[0]==='smooth'));
  engine.stop();assert.equal(engine.master.gain.value,0);assert.equal(engine.enabled,false);
+});
+test('all harmonic voices follow the same data pitch instead of leaving fixed drones',async()=>{
+ const context=new Context(),engine=new AudioEngine(()=>context);await engine.start();
+ engine.update({...valid,value:0},{...prefs,voiceProfile:'temperature'},true);
+ assert.deepEqual(engine.dataVoice.oscillators.map(node=>node.frequency.value),[1000,2000,3000,1000]);
+ engine.update({...valid,value:.5},{...prefs,voiceProfile:'temperature'},true);
+ const f=Math.sqrt(1000*8000);
+ engine.dataVoice.oscillators.forEach((node,i)=>assert.ok(Math.abs(node.frequency.value-f*[1,2,3,1][i])<1e-8));
+ const wave=engine.oscillator.wave;
+ engine.update({...valid,value:.5},{...prefs,voiceProfile:'ozone'},true);
+ assert.equal(context.oscillators.length,4,'changing dataset reuses the bounded voice bank');
+ assert.notDeepEqual(engine.oscillator.wave.imag,wave.imag,'dataset identity changes harmonics');
+ assert.equal(engine.dataVoice.profile,'ozone');assert.ok(Math.abs(engine.oscillator.frequency.value-f)<1e-8,'timbre cannot change the value pitch');engine.stop();
+});
+test('upper harmonic voices are limited at the audio-device Nyquist boundary',async()=>{
+ const context=new Context();context.sampleRate=44100;
+ const engine=new AudioEngine(()=>context);await engine.start();engine.update({...valid,value:1},prefs,true);
+ assert.equal(engine.oscillator.frequency.value,8000);
+ assert.ok(engine.dataVoice.oscillators.every(node=>node.frequency.value<44100/2));
+ assert.ok(engine.dataVoice.filter.frequency.value<44100/2);engine.stop();
+});
+test('value legend uses the selected data timbre and starts and stops every voice',async()=>{
+ const engine=new AudioEngine(()=>new Context());await engine.start();engine.legend('pitch',{...prefs,voiceProfile:'dust'});
+ assert.equal(engine.pendingTones.size,3);
+ for(const entry of engine.pendingTones){assert.equal(entry.voice.profile,'dust');assert.equal(entry.voice.oscillators.length,4);assert.ok(entry.voice.oscillators.every(node=>node.started&&node.stopped&&node.frequency.value<24000));}
+ engine.stop();assert.equal(engine.pendingTones.size,0);
 });
 test('cursor position moves the current voice through HRTF space',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
@@ -61,8 +87,8 @@ test('silence invalidates an in-flight resume and cannot be undone by late compl
 });
 test('a new legend cancels old examples and uses the configured pitch range',async()=>{
  const context=new Context();const engine=new AudioEngine(()=>context);await engine.start();
- engine.legend('pitch',{...prefs,minHz:200,maxHz:1000});
- assert.deepEqual([...engine.pendingTones].map(o=>o.oscillator.frequency.value),[200,Math.sqrt(200000),1000]);
+ engine.legend('pitch',{...prefs,minHz:1000,maxHz:8000});
+ assert.deepEqual([...engine.pendingTones].map(o=>o.oscillator.frequency.value),[1000,Math.sqrt(8000000),8000]);
  const old=[...engine.pendingTones];engine.legend('missing',prefs);
  assert.ok(old.every(e=>e.oscillator.stopped));assert.equal(engine.pendingTones.size,1);
  engine.stop();assert.equal(engine.pendingTones.size,0);

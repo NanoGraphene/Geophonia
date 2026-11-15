@@ -20,9 +20,15 @@ Sampling radius defaults to 2: a 5×5 source-pixel square. Options 1 and 4 produ
 
 Density is qualifying trace pixels divided by all available pixels in the square. A threshold can exclude dim traces; zero trace coverage means no interpretable visual sample. It does not establish physical absence, measured zero or scientific missing data. All thresholds are constant and available in `sampling.js`; normalization never follows per-frame minima/maxima.
 
-## Audio — neutral data voice and short crossing notifications (current)
+## Audio — logarithmic value pitch and variable-specific harmonics (current)
 
-Mean palette position q sets pitch = lowHz×(highHz/lowHz)^q; coverage sets gain = 0.12×volume×density, with existing 55 ms smoothing. The sustained harmonic voice has the same voicing everywhere (partial weights [1,.32,.18,.10,.05], neutral low-pass cutoff fundamental×3 clamped to 100–10000 Hz, Q=.55). Geography never changes its filter or waveform. The constant surface modifier, contrast setting, and 140 Hz background guide have been removed. Missing data has zero continuous data gain and no automatic gap beep.
+The value is normalized with one fixed dataset/sequence range (and the selected linear, logarithmic-data or square-root response). Normalized value q sets **frequency = lowHz × (highHz / lowHz)^q**. The default fundamental spans 1000–8000 Hz, three octaves; custom limits must be ordered within 1000–10000 Hz. The frequency mapping is continuous, with no semitone quantization. A 0.001 normalized increase multiplies frequency by 8^0.001. Logarithmic frequency spacing is independent of optional logarithmic data normalization, so Celsius temperatures below zero and valid zeros work with linear data normalization.
+
+The continuous tone uses four additive voices at harmonic ratios 1, 2, 3 and 1 (the last gently detuned), with a dominant fundamental and profile-specific overtone weights. Every voice follows the same changing value pitch with 25 ms smoothing; upper voices taper out before the device Nyquist limit. The low-pass tracks the fundamental to retain harmonic character, rather than encoding a separate data value. Coverage loudness retains its floor; value and brightness amplitude channels remain selectable. Missing samples remain silent.
+
+Automatic timbres distinguish temperature (warm strings), ozone (glass harmonics), PM2.5 (dry reed), carbon monoxide (hollow woodwind), nitrogen oxides (bright brass), night lights (crystalline organ) and lightning (electric harmonics). Aerosol category selection chooses separate sea-salt, dust, smoke and sulfate profiles. These are designed auditory metaphors, not recordings of the phenomena. A manual Sound character selector works for every dataset. New manifests can declare `sonification: {profile: "temperature", categoryProfiles: {dust: "dust"}}`; otherwise title/variable/unit inference falls back to a balanced harmonic ensemble. Values and timbres remain comparable across frame changes. Land/water classification never changes this dataset timbre.
+
+The low/middle/high value and loudness legends use the selected data profile and configured pitch range. Short shoreline and map-edge notifications retain their existing distinct signatures.
 
 Land/water classification independently triggers short mono earcons on spatial shoreline crossings:
 - Entering land: dry, low knock; partial weights [1,.7,.45,.3,.2,.1]; pitch slides from 330 to 220 Hz over the first 75% of a 45 ms envelope.

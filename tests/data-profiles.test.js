@@ -9,7 +9,7 @@ import{parseCSV,createGridDataset}from'../src/csv-grid.js';
 import{gridPixels}from'../src/grid-renderer.js';
 import{valueText,formattedValue,dateText}from'../src/narration-text.js';
 import catalog from '../public/data/catalog.json' with {type:'json'};
-const prefs={toneHz:220,minHz:160,maxHz:800,volume:.25};
+const prefs={minHz:1000,maxHz:8000,volume:.25};
 test('nonlinear legends interpolate actual labeled tick anchors, including logarithmic and nonuniform scales',async()=>{
   for(const id of ['air-5151','air-5152','air-5153','air-5154']){
     const m=JSON.parse(await readFile(`public/data/${id}-manifest.json`));
@@ -54,12 +54,12 @@ test('annotation masks and dark neutral backgrounds cannot become high-value pal
 test('pitch and amplitude use chosen range/channel with clipping, log and square-root response',()=>{
   const sample={value:.25,measurement:10,density:.5,intensity:.8,validity:'valid'};
   const mapping={min:1,max:100,curve:'log',amplitude:'value'};
-  const output=mapAudio(sample,{...prefs,mapping});assert.equal(output.frequency,220);assert.equal(output.gain,.015);assert.ok(output.cutoff>300);
+  const output=mapAudio(sample,{...prefs,mapping});assert.equal(output.frequency,Math.sqrt(8000000));assert.equal(output.gain,.015);
   assert.ok(mapAudio(sample,{...prefs,mapping:{...mapping,amplitude:'coverage'}}).gain>.015);
   assert.equal(mapAudio(sample,{...prefs,mapping:{...mapping,amplitude:'intensity'}}).gain,.024);
-  assert.equal(mapAudio({...sample,measurement:1000},{...prefs,mapping}).frequency,220);
+  assert.equal(mapAudio({...sample,measurement:1000},{...prefs,mapping}).frequency,8000);
   assert.equal(mapAudio(sample,{...prefs,mapping:{...mapping,min:0}}).frequency,null);
-  assert.equal(mapAudio(sample,{...prefs,mapping:{min:0,max:40,curve:'sqrt',amplitude:'value'}}).frequency,220);
+  assert.equal(mapAudio(sample,{...prefs,mapping:{min:0,max:40,curve:'sqrt',amplitude:'value'}}).frequency,Math.sqrt(8000000));
   assert.equal(mapAudio(sample,{...prefs,volume:0,mapping}).gain,0);
 });
 test('imported grid rendering and sampling refer to identical geographic cells, with missing pixels transparent',()=>{

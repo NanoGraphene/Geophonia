@@ -20,12 +20,15 @@ test('startup preloads Phonon; shortcuts stream arbitrary text and native replay
   window.eval(bundled.outputFiles[0].text);await until(()=>window.document.getElementById('speech-engine-state').textContent==='Phonon · ready');
   assert.equal(workers.length,1);assert.equal(workers[0].messages.filter(m=>m.type==='init').length,1);assert.equal(spoken.length,0);assert.equal(contexts.length,0,'no audio activation or prerender at startup');
   const byId=id=>window.document.getElementById(id);
+  await until(()=>byId('sound-profile-description').textContent.includes('Temperature'));
+  byId('sound-profile').value='ozone';byId('sound-profile').dispatchEvent(new window.Event('change',{bubbles:true}));assert.match(byId('sound-profile-description').textContent,/Ozone/);
+  byId('sound-profile').value='auto';byId('sound-profile').dispatchEvent(new window.Event('change',{bubbles:true}));assert.match(byId('sound-profile-description').textContent,/Temperature/);
   byId('tab-data').focus();byId('tab-data').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(window.document.activeElement,byId('tab-sound'));assert.equal(byId('tab-navigate').getAttribute('aria-selected'),'true','tab arrows only move interface focus');
   await until(()=>spoken.at(-1)?.includes('Sound & speech. Tab. Not selected.'));
   byId('tab-sound').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(byId('panel-sound').hidden,false);assert.equal(byId('panel-data').hidden,true);
   await until(()=>spoken.at(-1)?.includes('Sound & speech. Tab. Selected.'));
   const low=byId('min-hz'),high=byId('max-hz');for(let parent=low.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
-  low.value='900';high.value='100';byId('apply-pitch').click();await until(()=>spoken.at(-1)?.includes('Use 80–2000 Hz'));low.value='160';high.value='800';
+  low.value='900';high.value='100';byId('apply-pitch').click();await until(()=>spoken.at(-1)?.includes('Use 1000–10000 Hz'));low.value='1000';high.value='8000';
   const input=byId('speech-text'),button=byId('voice-test'),player=byId('speech-player');
   for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;input.value='A newly invented instrument named Quasarbrook measures minus 37.25 volts.';const nodesBeforeReading=contexts[0].nodes.length;button.click();
   await until(()=>contexts[0]?.nodes.length>nodesBeforeReading&&contexts[0].nodes.at(-1).started);assert.equal(spoken.at(-1),input.value);assert.equal(player.getAttribute('src'),null,'stream starts before complete WAV');workers[0].complete();await until(()=>player.src.startsWith('blob:'));contexts[0].nodes.at(-1).onended();

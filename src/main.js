@@ -6,8 +6,9 @@ import { DATASETS, UNAVAILABLE_DATASETS, registerDataset, sampleDataset, createS
 import { fitMap, mapViewport, toView, fromView } from './map-view.js';
 import { loadSource, getManifest, registerLocalSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
-import { mapAudio, validatePitchRange, validateToneFrequency } from './audio-mapping.js';
+import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
+import { SOUND_PROFILES, resolveSoundProfile } from './sound-profiles.js';
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 import { PhononSpeech } from './phonon-speech.js';
@@ -37,6 +38,9 @@ function populateDatasets(selected=$('dataset').value) {
   for(const [id,definition] of Object.entries(DATASETS)) $('dataset').add(new Option(definition.label,id));
   $('dataset').value=DATASETS[selected]?selected:'svs-3912';
 }
+for(const [id,profile] of Object.entries(SOUND_PROFILES))$('sound-profile').add(new Option(profile.name,id));
+$('sound-profile').addEventListener('change',event=>{stopLegend();store.update({audio:{...store.get().audio,soundProfile:event.target.value}});interfaceFeedback(()=>$('sound-profile-description').textContent);});
+function audioPreferences(state=store.get()){return {...state.audio,voiceProfile:resolveSoundProfile(source?.manifest,state.variable,state.audio.soundProfile)};}
 populateDatasets('svs-3912');
 for(const item of UNAVAILABLE_DATASETS) {
   const row=document.createElement('li'),link=document.createElement('a');link.href=item.sourcePage;link.textContent=item.title;link.target='_blank';link.rel='noopener';row.append(link,document.createTextNode(': '+item.reason));$('unavailable-datasets').append(row);
@@ -138,7 +142,6 @@ function interfaceFeedback(text){
 document.addEventListener('focusin',cancelInterfaceFeedback);
 const actionFeedback={
   'apply-pitch':()=> $('pitch-error').textContent,
-  'apply-tone':()=> $('tone-status').textContent,
   'mapping-apply':()=> $('mapping-status').textContent,
   'mapping-auto':()=> $('mapping-status').textContent,
   'import-load':()=> $('import-status').textContent,
@@ -268,7 +271,8 @@ function render(state) {
   const pixel=source?sourcePixel(source.manifest,state.location):null;
   $('pixel').textContent = pixel ? `Source pixel ${pixel.x}, ${pixel.y}` : 'Source pixels unavailable';
   const sample = state.sample;
-  const mapped = mapAudio(sample, state.audio);
+  const preferences=audioPreferences(state);
+  const mapped = mapAudio(sample, preferences);
   $('feature').textContent=source?formattedValue(sample,source.manifest):'—';
   $('hud-value').textContent=$('feature').textContent;
   $('hud-marker').hidden=sample?.value==null;
@@ -278,8 +282,10 @@ function render(state) {
   $('palette-marker').hidden = sample?.value == null;
   $('palette-marker').style.left = `${(sample?.value ?? 0) * 100}%`;
   $('density').textContent = sample ? `${Math.round(sample.density * 100)}% · ${sample.matchedPixels}/${sample.totalPixels} ${profile?.method==='grid'?'cells':'pixels'}` : '—';
-  $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz constant · ${Math.round(mapped.cutoff)} Hz cutoff`;
-  $('tone-hz').value = state.audio.toneHz ?? 220;
+  $('pitch').textContent = mapped.frequency === null ? 'No data tone' : `${Math.round(mapped.frequency)} Hz · logarithmic pitch`;
+  $('sound-profile').value=state.audio.soundProfile??'auto';
+  const soundProfile=SOUND_PROFILES[preferences.voiceProfile];
+  $('sound-profile-description').textContent=`${soundProfile.name}. ${soundProfile.description}`;
   $('sample-note').textContent=sample?.value!=null?(profile?.estimate===false?'Neighborhood mean · source grid units':'Image-derived visual estimate'):sample?.validity==='outside-coverage'?'Outside dataset coverage':source?'No interpretable sample':'Waiting for the selected frame';
   const extent=source?.manifest.geo?.extent;
   $('dataset-center').hidden=!extent||(extent[2]-extent[0]>=359.999&&extent[3]-extent[1]>=169);
@@ -295,7 +301,7 @@ function render(state) {
   else if (legendPlaying) $('audio-status').textContent = 'Playing an audio legend example.';
   else if (!active) $('audio-status').textContent = 'Audio paused outside the map. Move or focus the map to continue.';
   else $('audio-status').textContent = sample?.value != null ? 'Audio on · exploring the selected location' : 'Audio on · no visual sample; data tone is silent';
-  audio.update(sample, state.audio, active && !legendPlaying, state.surface, point);
+  audio.update(sample, preferences, active && !legendPlaying, state.surface, point);
 }
 store.subscribe(render);
 function resample(location = store.get().location, extra = {}) {
@@ -417,20 +423,11 @@ for (const [id, preference] of [['coast-cues', 'coastCues'], ['boundary-cues', '
 $('apply-pitch').addEventListener('click', () => {
   const min = Number($('min-hz').value), max = Number($('max-hz').value);
   if (!$('min-hz').value || !$('max-hz').value || !validatePitchRange(min, max)) {
-    $('pitch-error').textContent = 'Use 80–2000 Hz, with low pitch below high pitch.';
+    $('pitch-error').textContent = 'Use 1000–10000 Hz, with low pitch below high pitch.';
     return;
   }
   stopLegend(); $('pitch-error').textContent = `Pitch range set to ${min}–${max} Hz.`;
   store.update({ audio: { ...store.get().audio, minHz: min, maxHz: max } });
-});
-$('apply-tone').addEventListener('click', () => {
-  const toneHz = Number($('tone-hz').value);
-  if (!$('tone-hz').value || !validateToneFrequency(toneHz)) {
-    $('tone-status').textContent = 'Use a constant pitch between 40 and 2000 Hz.';
-    return;
-  }
-  stopLegend(); store.update({ audio: { ...store.get().audio, toneHz } });
-  $('tone-status').textContent = `Constant pitch set to ${toneHz} Hz.`;
 });
 async function startAudio() {
   if (starting || !source || !audioSupported) return false;
@@ -468,7 +465,7 @@ for (const button of document.querySelectorAll('[data-legend]')) button.addEvent
   stopLegend();
   if (!store.get().audio.enabled && !await startAudio()) return;
   active = false; legendPlaying = true;
-  const duration = audio.legend(button.dataset.legend, store.get().audio);
+  const duration = audio.legend(button.dataset.legend, audioPreferences());
   tutorial?.notify(`legend-${button.dataset.legend}`);
   render(store.get());
   $('legend-status').textContent = `Playing: ${button.querySelector('strong').textContent}.`;
