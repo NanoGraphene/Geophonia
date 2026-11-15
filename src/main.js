@@ -8,10 +8,12 @@ import { loadSource } from './sources.js';
 import { sampleNeighborhood } from './sampling.js';
 import { mapAudio, validatePitchRange } from './audio-mapping.js';
 import { AudioEngine } from './audio.js';
+<<<<<<< HEAD
 import { loadGeography, SurfaceTransitionTracker } from './geography.js';
 import { BoundaryTracker, clipExitPoint } from './navigation-cues.js';
 import { NaturalVoice } from './natural-voice.js';
 import { locationText, describeCurrent, describeDataset, describeValue, describeMap } from './narration-text.js';
+=======
 
 const $ = id => document.getElementById(id);
 const store = createStore();
@@ -272,6 +274,7 @@ $('start-audio').addEventListener('click', async () => {
   else await startAudio();
 });
 $('silence').addEventListener('click', () => silence());
+<<<<<<< HEAD
 document.addEventListener('keydown', event => { if (event.key === 'Escape') silence(); });
 document.addEventListener('keydown', event => {
   if (event.altKey || event.metaKey || event.ctrlKey || event.repeat) return;
@@ -282,7 +285,23 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   readSelection(kind, { fallback: true });
 });
+=======
+>>>>>>> origin/text_to_speech
 document.addEventListener('visibilitychange', () => { if (document.hidden) silence('Audio paused while this tab is inactive. Select Start audio to resume.'); });
+const SPEECH_KEYS = {
+  '1': state => spokenLocation(state.location),
+  '2': state => spokenValue(state.sample),
+  '3': state => spokenMapDescription(source?.manifest, state.timestamp),
+};
+document.addEventListener('keydown', event => {
+  if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey || event.repeat) return;
+  if (event.target.closest('input, select, textarea')) return;
+  const build = SPEECH_KEYS[event.key];
+  if (!build) return;
+  event.preventDefault();
+  speak(build(store.get()));
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape') { stopSpeech(); silence(); } });
 window.addEventListener('pagehide', () => silence());
 for (const button of document.querySelectorAll('[data-legend]')) button.addEventListener('click', async () => {
   if (!source || !audioSupported || starting) return;
